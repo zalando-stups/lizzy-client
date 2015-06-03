@@ -7,6 +7,7 @@ Usage
 -----
 
 .. code-block::
+
     Usage: __main__.py [OPTIONS]
 
     Options:
