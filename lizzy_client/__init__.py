@@ -11,48 +11,67 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-import json
+import logging
+import sys
 
 import click
 import requests
 
-URL = "https://token.auth.zalando.com/access_token?json=True"
+from .lizzy import Lizzy
+from .token import get_token
 
+requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
-def make_header(access_token):
-    headers = dict()
-    headers['Authorization'] = 'Bearer {}'.format(access_token)
-    headers['Content-type'] = 'application/json'
-    return headers
+logger = logging.getLogger('lizzy-client')
+handler = logging.StreamHandler()
+logger.addHandler(handler)
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+handler.setFormatter(formatter)
+logger.setLevel(logging.INFO)
 
-
-def get_token(url, user, password):
-    token_info = requests.get(url=url, auth=(user, password)).json()
-    return token_info
-
-
-def request_new_deployment(access_token, image_version, keep_stacks, new_traffic, senza_yaml_path):
-    header = make_header(access_token)
-
-    with open(senza_yaml_path) as senza_yaml_file:
-        senza_yaml = senza_yaml_file.read()
-
-    data = {'image_version': image_version,
-            'keep_stacks': keep_stacks,
-            'new_traffic': new_traffic,
-            'senza_yaml': senza_yaml}
-    request = requests.post('http://127.0.0.1:8080/deploy/', data=json.dumps(data), headers=header)
-    return request.json()
 
 @click.command()
 @click.option('--image-version', required=True)
-@click.option('--keep-stacks', default=1)
+@click.option('--keep-stacks', default=0)
 @click.option('--new-traffic', default=100)
 @click.option('--senza-yaml', required=True)
-@click.option('--user')
-@click.password_option('--password')
-def run(image_version, keep_stacks, new_traffic, senza_yaml, user, password):
-    token_info = get_token(URL, user, password)
-    access_token = token_info['access_token']
-    request_new_deployment(access_token, image_version, keep_stacks, new_traffic, senza_yaml)
+@click.option('--user', required=True)
+@click.password_option('--password', required=True)
+@click.option('--token_url', default="https://token.auth.zalando.com/access_token?json=True")
+@click.option('--lizzy_url', required=True)
+def run(image_version: str,
+        keep_stacks: str,
+        new_traffic: str,
+        senza_yaml: str,
+        user: str,
+        password: str,
+        token_url: str,
+        lizzy_url: str):
 
+    access_token = get_token(token_url, user, password)
+    if access_token is None:
+        logger.error('Authentication failed.')
+        sys.exit(-1)
+
+    lizzy = Lizzy(lizzy_url, access_token)
+
+    stack_id = lizzy.new_stack(image_version, keep_stacks, new_traffic, senza_yaml)
+    if stack_id is None:
+        logger.error('Deployment failed.')
+        sys.exit(-1)
+    logger.info("Stack ID: %s", stack_id)
+
+    final_state = lizzy.wait_for_deployment(stack_id)
+
+    if final_state == "CF:CREATE_COMPLETE":
+        logger.info('Deployment Successful')
+        sys.exit(0)
+    elif final_state == "CF:ROLLBACK_COMPLETE":
+        logger.error("Stack was rollback after deployment. Check you application log for possible reasons.")
+        sys.exit(1)
+    elif final_state == "LIZZY:REMOVED":
+        logger.error("Stack was removed before deployment finished.")
+        sys.exit(1)
+    else:
+        logger.error('Deployment failed: %s', final_state)
+        sys.exit(1)
