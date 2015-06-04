@@ -23,7 +23,7 @@ setup(
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
-    install_requires=['click', 'requests'],
+    install_requires=['click', 'requests', 'pyyaml'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.4',
