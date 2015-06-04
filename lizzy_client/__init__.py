@@ -37,8 +37,8 @@ logger.setLevel(logging.INFO)
 @click.option('--senza-yaml', required=True)
 @click.option('--user', required=True)
 @click.password_option('--password', required=True)
-@click.option('--token_url', default="https://token.auth.zalando.com/access_token?json=True")
-@click.option('--lizzy_url', required=True)
+@click.option('--token-url', default="https://token.auth.zalando.com/access_token?json=True")
+@click.option('--lizzy-url', required=True)
 def run(image_version: str,
         keep_stacks: str,
         new_traffic: str,
