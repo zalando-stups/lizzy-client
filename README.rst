@@ -11,15 +11,29 @@ Usage
     Usage: __main__.py [OPTIONS]
 
     Options:
+      --configuration
+      --senza-yaml TEXT      [required]
       --image-version TEXT   [required]
       --keep-stacks INTEGER
       --new-traffic INTEGER
-      --senza-yaml TEXT      [required]
-      --user TEXT            [required]
-      --password TEXT        [required]
-      --token_url TEXT
-      --lizzy_url TEXT       [required]
+      --user TEXT
+      --password TEXT
+      --token-url TEXT
+      --lizzy-url TEXT
       --help                 Show this message and exit.
+
+Configuration
+-------------
+`user`, `password`, `token-url`, `lizzy-url` can be set on a configuration file:
+
+.. code-block::
+
+      user: USERNAME
+      password: PASSWORD
+      lizzy-url: https://lizzyserver.example/
+      token-url: https://token.url.example/access_token
+
+Note that this four values must be set either on the configuration file or as a command line argument.
 
 License
 -------
