@@ -10,16 +10,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
  language governing permissions and limitations under the License.
 """
-import logging
+
 import requests
 
 
-def get_token(url, user, password) -> str:
-    logger = logging.getLogger('lizzy-client.token')
-    logger.info('Getting auth token')
-    try:
-        token_info = requests.get(url=url, auth=(user, password)).json()
-    except requests.ConnectionError as e:
-        logger.error("Failed to get security token: %s", e)
-        return None
-    return token_info['access_token']
+def get_token(url, user, password) -> dict:
+    """
+    Get access token info.
+    """
+    request = requests.get(url=url, auth=(user, password))
+    request.raise_for_status()
+    token_info = request.json()
+    return token_info

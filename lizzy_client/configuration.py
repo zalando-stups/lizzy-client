@@ -11,21 +11,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-import logging
-
 import yaml
-
-logger = logging.getLogger('lizzy-client.configuration')
 
 
 def load_configuration(configuration_path: str) -> dict:
-    try:
-        with open(configuration_path) as configuration_file:
-            options = yaml.safe_load(configuration_file)
-    except FileNotFoundError:
-        logger.exception('Configuration file not found.')
-        options = None
-    except yaml.YAMLError:
-        logger.exception('Error parsing YAML file.')
-        options = None
+    with open(configuration_path) as configuration_file:
+        options = yaml.safe_load(configuration_file)
     return options

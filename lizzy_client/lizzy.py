@@ -12,7 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 import json
-import logging
 import requests
 import time
 
@@ -27,8 +26,6 @@ FINAL_STATES = ["CF:CREATE_COMPLETE",
                 "LIZZY:ERROR",
                 "LIZZY:REMOVED"]
 
-logger = logging.getLogger('lizzy-client.lizzy')
-
 
 def make_header(access_token):
     headers = dict()
@@ -42,26 +39,18 @@ class Lizzy:
         self.base_url = base_url
         self.access_token = access_token
 
+    @property
+    def stacks_url(self):
+        return "{base_url}/stacks/".format(base_url=self.base_url)
+
     def get_stack(self, stack_id) -> dict:
         header = make_header(self.access_token)
         url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
-        try:
-            request = requests.get(url, headers=header, verify=False)
-        except requests.RequestException:
-            logger.exception("Failed to get stack state.")
-            return None
-
-        if request.ok:
-            try:
-                return request.json()
-            except ValueError:
-                logger.error("Error decoding lizzy response: %s", request.text)
-        else:
-            logger.error("Failed to get stack state: Got HTTP %d status code on %s", request.status_code, url)
-            return None
+        request = requests.get(url, headers=header, verify=False)
+        request.raise_for_status()
+        return request.json()
 
     def new_stack(self, image_version, keep_stacks, new_traffic, senza_yaml_path) -> str:
-        logger.info('Requesting deployment')
         header = make_header(self.access_token)
 
         with open(senza_yaml_path) as senza_yaml_file:
@@ -71,39 +60,29 @@ class Lizzy:
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'senza_yaml': senza_yaml}
-        url = "{base_url}/stacks/".format(base_url=self.base_url)
-        try:
-            request = requests.post(url, data=json.dumps(data), headers=header, verify=False)
-        except requests.RequestException:
-            logger.exception("Failed to deploy stack.")
-            return None
 
-        if request.ok:
-            try:
-                stack_info = request.json()
-                return stack_info['stack_id']
-            except ValueError:
-                logger.error("Error decoding lizzy response: %s", request.text)
-        else:
-            logger.error("Failed to deploy stack: Got HTTP %d status code on %s.", request.status_code, url)
-            return None
+        request = requests.post(self.stacks_url, data=json.dumps(data), headers=header, verify=False)
+        request.raise_for_status()
+        stack_info = request.json()
+        return stack_info['stack_id']
 
-    def wait_for_deployment(self, stack_id):
+    def wait_for_deployment(self, stack_id: str) -> [str]:
         last_status = None
         retries = 3
         while retries:
-            stack = self.get_stack(stack_id)
+            try:
+                stack = self.get_stack(stack_id)
 
-            if stack:
                 retries = 3  # reset the number of retries
                 status = stack["status"]
                 if status != last_status:
-                    logger.info("Status: %s", status)
                     last_status = status
+                    yield status
                 if status in FINAL_STATES:
                     return status
-            else:
+            except Exception as e:
                 retries -= 1
-                logger.info("%d retries left.", retries)
+                yield 'Failed to get stack ({retries} retries left): {exception}.'.format(retries=retries, exception=e)
+
             time.sleep(10)
-        logger.error('Deployment failed')
+        return None

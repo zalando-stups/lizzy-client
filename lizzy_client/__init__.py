@@ -11,11 +11,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 '''
 
-import logging
 import sys
 
+from clickclick import Action, error, info, fatal_error
 import click
 import requests
+import yaml
 
 from .lizzy import Lizzy
 from .token import get_token
@@ -25,16 +26,6 @@ from .configuration import load_configuration
 REQUIRED = ['user', 'password', 'lizzy_url', 'token_url']
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
-
-
-def init_logger(level=logging.INFO) -> logging.Logger:
-    logger = logging.getLogger('lizzy-client')
-    formatter = logging.Formatter('%(message)s')
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(level)
-    return logger
 
 
 @click.command()
@@ -57,49 +48,58 @@ def run(configuration: str,
         lizzy_url: str,
         token_url: str):
 
-    logger = init_logger()
-
     if configuration:
-        options = load_configuration(configuration)
-        if options is None:
-            logger.error('Failed to load configuration file.')
-            sys.exit(-1)
+        try:
+            options = load_configuration(configuration)
+        except FileNotFoundError:
+            fatal_error('Configuration file not found.')
+        except yaml.YAMLError:
+            fatal_error('Error parsing YAML file.')
+
         user = options.get('user') or user
-        password = options.get('password') or password
-        lizzy_url = options.get('lizzy-url') or lizzy_url
-        token_url = options.get('token-url') or token_url
+        password = password or options.get('password')
+        lizzy_url = lizzy_url or options.get('lizzy-url')
+        token_url = token_url or options.get('token-url')
 
     for parameter in REQUIRED:
         # verify is all required parameters are set either on command line arguments or configuration
         if not locals()[parameter]:
             parameter = parameter.replace('_', '-')  # convert python variable name to command line argument name
-            logger.error('Error: Missing option "--%s".', parameter)
-            exit(-1)
+            fatal_error('Error: Missing option "--{parameter}".', parameter=parameter)
 
-    access_token = get_token(token_url, user, password)
-    if access_token is None:
-        logger.error('Authentication failed.')
-        sys.exit(-1)
+    with Action('Fetching authentication token..') as action:
+        try:
+            token_info = get_token(token_url, user, password)
+            action.progress()
+        except requests.RequestException as e:
+            action.fatal_error('Authentication failed: {}'.format(e))
+
+        try:
+            access_token = token_info['access_token']
+            action.progress()
+        except KeyError:
+            action.fatal_error('Authentication failed: "access_token" not on json.')
 
     lizzy = Lizzy(lizzy_url, access_token)
 
-    stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, senza_yaml)
-    if stack_id is None:
-        logger.error('Deployment failed.')
-        sys.exit(-1)
-    logger.info('Stack ID: %s', stack_id)
+    with Action('Requesting new stack..') as action:
+        try:
+            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, senza_yaml)
+        except requests.RequestException as e:
+            action.fatal_error('Deployment failed:: {}'.format(e))
 
-    final_state = lizzy.wait_for_deployment(stack_id)
+    info('Stack ID: {}'.format(stack_id))
 
-    if final_state == 'CF:CREATE_COMPLETE':
-        logger.info('Deployment Successful')
-        sys.exit(0)
-    elif final_state == 'CF:ROLLBACK_COMPLETE':
-        logger.error('Stack was rollback after deployment. Check you application log for possible reasons.')
-        sys.exit(1)
-    elif final_state == 'LIZZY:REMOVED':
-        logger.error('Stack was removed before deployment finished.')
-        sys.exit(1)
-    else:
-        logger.error('Deployment failed: %s', final_state)
-        sys.exit(1)
+    with Action('Wating for new stack..\n') as action:
+        for status in lizzy.wait_for_deployment(stack_id):
+            final_state = status
+            info('.. '+status)
+
+        if final_state == 'CF:CREATE_COMPLETE':
+            info('Deployment Successful')
+        elif final_state == 'CF:ROLLBACK_COMPLETE':
+            error('Stack was rollback after deployment. Check you application log for possible reasons.')
+        elif final_state == 'LIZZY:REMOVED':
+            error('Stack was removed before deployment finished.')
+        else:
+            error('Deployment failed: {}'.format(final_state))
