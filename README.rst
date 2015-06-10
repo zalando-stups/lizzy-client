@@ -10,24 +10,18 @@ Use the `create` subcommand to create stacks. The syntax is `lizzy create [OPTIO
 
 .. code-block::
 
-    $ lizzy create senza.yaml 1.0
+    $ lizzy create -c config.yaml senza.yaml 1.0
 
-For see more options use `lizzy create --help`:
+For see more options use `lizzy create --help`.
+
+List stacks
+-----------
+Use the `list` subcommand to list stacks:
 
 .. code-block::
+    $ lizzy_client list -c config.yaml
 
-    Usage: lizzy create [OPTIONS] DEFINITION IMAGE_VERSION
-
-    Options:
-      -c, --configuration TEXT
-      --keep-stacks INTEGER
-      --traffic INTEGER
-      -u, --user TEXT
-      -p, --password TEXT
-      -l, --lizzy-url TEXT
-      -t, --token-url TEXT
-      --help                    Show this message and exit.
-
+For see more options use `lizzy list --help`.
 
 Configuration
 -------------

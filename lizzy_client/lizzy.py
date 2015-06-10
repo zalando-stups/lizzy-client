@@ -50,6 +50,13 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
+    def get_stacks(self) -> list:
+        header = make_header(self.access_token)
+        url = "{base_url}/stacks/".format(base_url=self.base_url)
+        request = requests.get(url, headers=header, verify=False)
+        request.raise_for_status()
+        return request.json()['stacks']
+
     def new_stack(self, image_version, keep_stacks, new_traffic, senza_yaml_path) -> str:
         header = make_header(self.access_token)
 

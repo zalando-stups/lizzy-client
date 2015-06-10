@@ -11,23 +11,57 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-import sys
-
-from clickclick import Action, error, info, fatal_error
+from clickclick import Action, OutputFormat, print_table, info, fatal_error
 import click
 import requests
-import yaml
+import time
 
 from .lizzy import Lizzy
 from .token import get_token
-from .configuration import load_configuration
+from .configuration import ConfigurationError, Parameters
 
-# Parameters that must be set either in command line arguments or configuration
-REQUIRED = ['user', 'password', 'lizzy_url', 'token_url']
+
+STYLES = {
+    'CF:RUNNING': {'fg': 'green'},
+    'CF:TERMINATED': {'fg': 'red'},
+    'CF:DELETE_COMPLETE': {'fg': 'red'},
+    'CF:ROLLBACK_COMPLETE': {'fg': 'red'},
+    'CF:CREATE_COMPLETE': {'fg': 'green'},
+    'CF:CREATE_FAILED': {'fg': 'red'},
+    'CF:CREATE_IN_PROGRESS': {'fg': 'yellow', 'bold': True},
+    'CF:DELETE_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'CF:ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'CF:IN_SERVICE': {'fg': 'green'},
+    'CF:OUT_OF_SERVICE': {'fg': 'red'},
+    'LIZZY:NEW': {'fg': 'yellow', 'bold': True},
+    'LIZZY:DEPLOYING': {'fg': 'yellow', 'bold': True},
+    'LIZZY:DEPLOYED': {'fg': 'green'},
+    'LIZZY:REMOVED': {'fg': 'red'}
+    }
+
+
+TITLES = {
+    'creation_time': 'Created',
+    'logical_resource_id': 'Resource ID',
+    'launch_time': 'Launched',
+    'resource_status': 'Status',
+    'resource_status_reason': 'Status Reason',
+    'lb_status': 'LB Status',
+    'private_ip': 'Private IP',
+    'public_ip': 'Public IP',
+    'resource_id': 'Resource ID',
+    'instance_id': 'Instance ID',
+    'version': 'Ver.'
+}
+
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
 cli = click.Group()
+output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
+                             help='Use alternative output format')
+watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
+                            help='Auto update the screen every X seconds')
 
 
 @cli.command()
@@ -49,28 +83,15 @@ def create(definition: str,
            password: str,
            lizzy_url: str,
            token_url: str):
-    if configuration:
-        try:
-            options = load_configuration(configuration)
-        except FileNotFoundError:
-            fatal_error('Configuration file not found.')
-        except yaml.YAMLError:
-            fatal_error('Error parsing YAML file.')
-
-        user = options.get('user') or user
-        password = password or options.get('password')
-        lizzy_url = lizzy_url or options.get('lizzy-url')
-        token_url = token_url or options.get('token-url')
-
-    for parameter in REQUIRED:
-        # verify is all required parameters are set either on command line arguments or configuration
-        if not locals()[parameter]:
-            parameter = parameter.replace('_', '-')  # convert python variable name to command line argument name
-            fatal_error('Error: Missing option "--{parameter}".', parameter=parameter)
+    try:
+        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters.validate()
+    except ConfigurationError as e:
+        fatal_error(e.message)
 
     with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(token_url, user, password)
+            token_info = get_token(parameters.token_url, parameters.user, parameters.password)
             action.progress()
         except requests.RequestException as e:
             action.fatal_error('Authentication failed: {}'.format(e))
@@ -81,7 +102,7 @@ def create(definition: str,
         except KeyError:
             action.fatal_error('Authentication failed: "access_token" not on json.')
 
-    lizzy = Lizzy(lizzy_url, access_token)
+    lizzy = Lizzy(parameters.lizzy_url, access_token)
 
     with Action('Requesting new stack..') as action:
         try:
@@ -104,3 +125,74 @@ def create(definition: str,
             fatal_error('Deployment failed: {}'.format(final_state))
 
     info('Deployment Successful')
+
+
+@cli.command('list')
+@click.argument('stack_ref', nargs=-1)
+@click.option('--configuration', '-c')
+@click.option('--user', '-u')
+@click.option('--password', '-p')
+@click.option('--lizzy-url', '-l')
+@click.option('--token-url', '-t')
+@click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
+@watch_option
+@output_option
+def list_stacks(stack_ref: str,
+                configuration: str,
+                user: str,
+                password: str,
+                lizzy_url: str,
+                token_url: str,
+                all: bool,
+                watch: int,
+                output: str):
+
+    """List Lizzy stacks"""
+
+    try:
+        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters.validate()
+    except ConfigurationError as e:
+        fatal_error(e.message)
+
+    try:
+        token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+    except requests.RequestException as e:
+        fatal_error('Authentication failed: {}'.format(e))
+
+    try:
+        access_token = token_info['access_token']
+    except KeyError:
+        fatal_error('Authentication failed: "access_token" not on json.')
+
+    lizzy = Lizzy(parameters.lizzy_url, access_token)
+
+    repeat = True
+
+    while repeat:
+        all_stacks = lizzy.get_stacks()
+
+        if all:
+            stacks = all_stacks
+        else:
+            stacks = [stack for stack in all_stacks if stack['status'] not in ['LIZZY:REMOVED']]
+
+        if stack_ref:
+            stacks = [stack for stack in stacks if stack['stack_name'] in stack_ref]
+
+        rows = []
+        for stack in stacks:
+            rows.append({'stack_name': stack['stack_name'],
+                         'version': stack['stack_version'],
+                         'image_version': stack['image_version'],
+                         'status': stack['status']})
+
+        rows.sort(key=lambda x: (x['stack_name'], x['version']))
+        with OutputFormat(output):
+            print_table('stack_name version image_version status'.split(), rows, styles=STYLES, titles=TITLES)
+
+        if watch:
+            time.sleep(watch)
+            click.clear()
+        else:
+            repeat = False

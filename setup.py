@@ -23,7 +23,7 @@ setup(
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
-    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml'],
+    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'typing'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.4',
@@ -32,5 +32,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     long_description='Lizzy-client',
-    entry_points={'console_scripts': ['lizzy = lizzy_client:run']},
+    entry_points={'console_scripts': ['lizzy = lizzy_client:cli']},
 )
