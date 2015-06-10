@@ -11,7 +11,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-from clickclick import Action, OutputFormat, print_table, info, fatal_error
+from clickclick import Action, FloatRange, OutputFormat, print_table, info, fatal_error
+from typing import Optional
 import click
 import requests
 import time
@@ -34,6 +35,7 @@ STYLES = {
     'CF:IN_SERVICE': {'fg': 'green'},
     'CF:OUT_OF_SERVICE': {'fg': 'red'},
     'LIZZY:NEW': {'fg': 'yellow', 'bold': True},
+    'LIZZY:CHANGE': {'fg': 'yellow', 'bold': True},
     'LIZZY:DEPLOYING': {'fg': 'yellow', 'bold': True},
     'LIZZY:DEPLOYED': {'fg': 'green'},
     'LIZZY:REMOVED': {'fg': 'red'}
@@ -196,3 +198,45 @@ def list_stacks(stack_ref: str,
             click.clear()
         else:
             repeat = False
+
+
+@cli.command()
+@click.argument('stack_name')
+@click.argument('stack_version')
+@click.argument('percentage', type=FloatRange(0, 100, clamp=True))
+@click.option('--configuration', '-c')
+@click.option('--user', '-u')
+@click.option('--password', '-p')
+@click.option('--lizzy-url', '-l')
+@click.option('--token-url', '-t')
+def traffic(stack_name: str,
+            stack_version: str,
+            percentage: int,
+            configuration: Optional[str],
+            user: Optional[str],
+            password: Optional[str],
+            lizzy_url: Optional[str],
+            token_url: Optional[str]):
+
+    try:
+        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters.validate()
+    except ConfigurationError as e:
+        fatal_error(e.message)
+
+    with Action('Fetching authentication token..'):
+        try:
+            token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+        except requests.RequestException as e:
+            fatal_error('Authentication failed: {}'.format(e))
+
+        try:
+            access_token = token_info['access_token']
+        except KeyError:
+            fatal_error('Authentication failed: "access_token" not on json.')
+
+    lizzy = Lizzy(parameters.lizzy_url, access_token)
+
+    with Action('Requesting traffic change..'):
+        stack_id = '{stack_name}-{stack_version}'.format_map(locals())
+        lizzy.traffic(stack_id, percentage)

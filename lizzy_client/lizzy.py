@@ -73,6 +73,14 @@ class Lizzy:
         stack_info = request.json()
         return stack_info['stack_id']
 
+    def traffic(self, stack_id: str, percentage: int):
+        url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
+        data = {"new_traffic": percentage}
+
+        header = make_header(self.access_token)
+        request = requests.patch(url, data=json.dumps(data), headers=header, verify=False)
+        request.raise_for_status()
+
     def wait_for_deployment(self, stack_id: str) -> [str]:
         last_status = None
         retries = 3

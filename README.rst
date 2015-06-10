@@ -19,9 +19,18 @@ List stacks
 Use the `list` subcommand to list stacks:
 
 .. code-block::
-    $ lizzy_client list -c config.yaml
+    $ lizzy list -c config.yaml
 
 For see more options use `lizzy list --help`.
+
+Change stack traffic
+--------------------
+Use the `traffic` subcommand to change the stacks traffic:
+
+.. code-block::
+    $ lizzy traffic -c config.yaml my_app 1.0 95
+
+For see more options use `lizzy traffic --help`.
 
 Configuration
 -------------
