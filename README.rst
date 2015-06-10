@@ -3,24 +3,31 @@ Lizzy Client
 
 Script to deploy Senza_ definitions using a Lizzy_ server.
 
-Usage
------
+Create a new stack
+------------------
+
+Use the `create` subcommand to create stacks. The syntax is `lizzy create [OPTIONS] DEFINITION IMAGE_VERSION`:
 
 .. code-block::
 
-    Usage: __main__.py [OPTIONS]
+    $ lizzy create senza.yaml 1.0
+
+For see more options use `lizzy create --help`:
+
+.. code-block::
+
+    Usage: lizzy create [OPTIONS] DEFINITION IMAGE_VERSION
 
     Options:
-      --configuration
-      --senza-yaml TEXT      [required]
-      --image-version TEXT   [required]
+      -c, --configuration TEXT
       --keep-stacks INTEGER
-      --new-traffic INTEGER
-      --user TEXT
-      --password TEXT
-      --token-url TEXT
-      --lizzy-url TEXT
-      --help                 Show this message and exit.
+      --traffic INTEGER
+      -u, --user TEXT
+      -p, --password TEXT
+      -l, --lizzy-url TEXT
+      -t, --token-url TEXT
+      --help                    Show this message and exit.
+
 
 Configuration
 -------------

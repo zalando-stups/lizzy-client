@@ -1,4 +1,4 @@
-'''
+"""
 Copyright 2015 Zalando SE
 
 Licensed under the Apache License, Version 2.0 (the 'License'); you may not use this file except in compliance with the
@@ -9,7 +9,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
  language governing permissions and limitations under the License.
-'''
+"""
 
 import sys
 
@@ -27,27 +27,28 @@ REQUIRED = ['user', 'password', 'lizzy_url', 'token_url']
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
+cli = click.Group()
 
-@click.command()
+
+@cli.command()
+@click.argument('definition')  # TODO add definition type like senza
+@click.argument('image_version')
 @click.option('--configuration', '-c')
-@click.option('--senza-yaml', required=True)
-@click.option('--image-version', required=True)
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
 @click.option('--user', '-u')
 @click.option('--password', '-p')
 @click.option('--lizzy-url', '-l')
 @click.option('--token-url', '-t')
-def run(configuration: str,
-        senza_yaml: str,
-        image_version: str,
-        keep_stacks: str,
-        traffic: str,
-        user: str,
-        password: str,
-        lizzy_url: str,
-        token_url: str):
-
+def create(definition: str,
+           image_version: str,
+           configuration: str,
+           keep_stacks: str,
+           traffic: str,
+           user: str,
+           password: str,
+           lizzy_url: str,
+           token_url: str):
     if configuration:
         try:
             options = load_configuration(configuration)
@@ -84,22 +85,22 @@ def run(configuration: str,
 
     with Action('Requesting new stack..') as action:
         try:
-            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, senza_yaml)
+            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition)
         except requests.RequestException as e:
             action.fatal_error('Deployment failed:: {}'.format(e))
 
     info('Stack ID: {}'.format(stack_id))
 
-    with Action('Wating for new stack..\n') as action:
+    with Action('Wating for new stack..') as action:
         for status in lizzy.wait_for_deployment(stack_id):
             final_state = status
-            info('.. '+status)
+            action.progress()
 
-        if final_state == 'CF:CREATE_COMPLETE':
-            info('Deployment Successful')
-        elif final_state == 'CF:ROLLBACK_COMPLETE':
-            error('Stack was rollback after deployment. Check you application log for possible reasons.')
+        if final_state == 'CF:ROLLBACK_COMPLETE':
+            fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
         elif final_state == 'LIZZY:REMOVED':
-            error('Stack was removed before deployment finished.')
-        else:
-            error('Deployment failed: {}'.format(final_state))
+            fatal_error('Stack was removed before deployment finished.')
+        elif final_state != 'CF:CREATE_COMPLETE':
+            fatal_error('Deployment failed: {}'.format(final_state))
+
+    info('Deployment Successful')

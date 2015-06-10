@@ -1,3 +1,3 @@
-from lizzy_client import run
+from lizzy_client import cli
 
-run()
+cli()
