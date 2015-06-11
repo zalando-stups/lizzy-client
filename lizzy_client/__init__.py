@@ -14,6 +14,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 from clickclick import Action, FloatRange, OutputFormat, print_table, info, fatal_error
 from typing import Optional
 import click
+import dateutil.parser
 import requests
 import time
 
@@ -184,14 +185,17 @@ def list_stacks(stack_ref: str,
 
         rows = []
         for stack in stacks:
+            creation_time = dateutil.parser.parse(stack['creation_time'])
             rows.append({'stack_name': stack['stack_name'],
                          'version': stack['stack_version'],
                          'image_version': stack['image_version'],
-                         'status': stack['status']})
+                         'status': stack['status'],
+                         'creation_time': creation_time.timestamp()})
 
         rows.sort(key=lambda x: (x['stack_name'], x['version']))
         with OutputFormat(output):
-            print_table('stack_name version image_version status'.split(), rows, styles=STYLES, titles=TITLES)
+            print_table('stack_name version image_version status creation_time'.split(),
+                        rows, styles=STYLES, titles=TITLES)
 
         if watch:
             time.sleep(watch)
