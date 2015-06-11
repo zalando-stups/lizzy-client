@@ -32,6 +32,15 @@ Use the `traffic` subcommand to change the stacks traffic:
 
 For see more options use `lizzy traffic --help`.
 
+Deleting stacks
+---------------
+Use the `delete` subcommand to delete stacks:
+
+.. code-block::
+    $ lizzy delete -c config.yaml my_app 1.0
+
+For see more options use `lizzy delete --help`.
+
 Configuration
 -------------
 `user`, `password`, `token-url`, `lizzy-url` can be set on a configuration file:

@@ -43,6 +43,13 @@ class Lizzy:
     def stacks_url(self):
         return "{base_url}/stacks/".format(base_url=self.base_url)
 
+    def delete(self, stack_id: str):
+        url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
+
+        header = make_header(self.access_token)
+        request = requests.delete(url, headers=header, verify=False)
+        request.raise_for_status()
+
     def get_stack(self, stack_id) -> dict:
         header = make_header(self.access_token)
         url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
