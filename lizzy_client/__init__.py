@@ -12,7 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 from clickclick import Action, FloatRange, OutputFormat, print_table, info, fatal_error
-from typing import Optional
 import click
 import dateutil.parser
 import requests
@@ -21,7 +20,6 @@ import time
 from .lizzy import Lizzy
 from .token import get_token
 from .configuration import ConfigurationError, Parameters
-
 
 STYLES = {
     'CF:RUNNING': {'fg': 'green'},
@@ -39,9 +37,7 @@ STYLES = {
     'LIZZY:CHANGE': {'fg': 'yellow', 'bold': True},
     'LIZZY:DEPLOYING': {'fg': 'yellow', 'bold': True},
     'LIZZY:DEPLOYED': {'fg': 'green'},
-    'LIZZY:REMOVED': {'fg': 'red'}
-    }
-
+    'LIZZY:REMOVED': {'fg': 'red'}}
 
 TITLES = {
     'creation_time': 'Created',
@@ -54,9 +50,7 @@ TITLES = {
     'public_ip': 'Public IP',
     'resource_id': 'Resource ID',
     'instance_id': 'Instance ID',
-    'version': 'Ver.'
-}
-
+    'version': 'Ver.'}
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
@@ -149,7 +143,6 @@ def list_stacks(stack_ref: str,
                 all: bool,
                 watch: int,
                 output: str):
-
     """List Lizzy stacks"""
 
     try:
@@ -216,12 +209,11 @@ def list_stacks(stack_ref: str,
 def traffic(stack_name: str,
             stack_version: str,
             percentage: int,
-            configuration: Optional[str],
-            user: Optional[str],
-            password: Optional[str],
-            lizzy_url: Optional[str],
-            token_url: Optional[str]):
-
+            configuration: str,
+            user: str,
+            password: str,
+            lizzy_url: str,
+            token_url: str):
     try:
         parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
         parameters.validate()
@@ -256,12 +248,11 @@ def traffic(stack_name: str,
 @click.option('--token-url', '-t')
 def delete(stack_name: str,
            stack_version: str,
-           configuration: Optional[str],
-           user: Optional[str],
-           password: Optional[str],
-           lizzy_url: Optional[str],
-           token_url: Optional[str]):
-
+           configuration: str,
+           user: str,
+           password: str,
+           lizzy_url: str,
+           token_url: str):
     try:
         parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
         parameters.validate()

@@ -11,7 +11,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-from typing import Optional
 import yaml
 
 # Parameters that must be set either in command line arguments or configuration
@@ -19,15 +18,13 @@ REQUIRED = ['user', 'password', 'lizzy-url', 'token-url']
 
 
 class ConfigurationError(Exception):
-
     def __init__(self, message: str):
         self.message = message
 
 
 class Parameters:
-
     def __init__(self,
-                 configuration_path: Optional[str],
+                 configuration_path: str,
                  **kwargs):
         if configuration_path:
             try:

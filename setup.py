@@ -18,12 +18,12 @@ from setuptools import setup, find_packages
 setup(
     name='lizzy-client',
     packages=find_packages(),
-    version='0',
+    version='0.1.dev1',
     description='Lizzy-client',
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
-    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'typing', 'python-dateutil'],
+    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'python-dateutil'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.4',

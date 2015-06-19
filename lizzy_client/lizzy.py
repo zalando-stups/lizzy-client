@@ -41,7 +41,7 @@ class Lizzy:
 
     @property
     def stacks_url(self):
-        return "{base_url}/stacks/".format(base_url=self.base_url)
+        return "{base_url}/stacks".format(base_url=self.base_url)
 
     def delete(self, stack_id: str):
         url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
@@ -59,7 +59,7 @@ class Lizzy:
 
     def get_stacks(self) -> list:
         header = make_header(self.access_token)
-        url = "{base_url}/stacks/".format(base_url=self.base_url)
+        url = "{base_url}/stacks".format(base_url=self.base_url)
         request = requests.get(url, headers=header, verify=False)
         request.raise_for_status()
         return request.json()['stacks']
