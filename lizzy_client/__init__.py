@@ -166,7 +166,10 @@ def list_stacks(stack_ref: str,
     repeat = True
 
     while repeat:
-        all_stacks = lizzy.get_stacks()
+        try:
+            all_stacks = lizzy.get_stacks()
+        except requests.HTTPError as e:
+            fatal_error('Failed to get stacks')
 
         if all:
             stacks = all_stacks
