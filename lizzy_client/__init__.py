@@ -172,7 +172,7 @@ def list_stacks(configuration: str,
         try:
             all_stacks = lizzy.get_stacks()
         except requests.HTTPError as e:
-            fatal_error('Failed to get stacks')
+            fatal_error('Failed to get stacks: {}'.format(e))
 
         if all:
             stacks = all_stacks

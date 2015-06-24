@@ -13,12 +13,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 from setuptools import setup, find_packages
+import datetime
 
+version = "0.1.{:%Y%m%d%H%M}".format(datetime.datetime.now())
 
 setup(
     name='lizzy-client',
     packages=find_packages(),
-    version='0.1.201506241030',
+    version=version,
     description='Lizzy-client',
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
