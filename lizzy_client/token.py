@@ -14,12 +14,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 import requests
 
 
-def get_token(url: str, client_id: str, client_secret: str, user: str, password: str) -> dict:
+def get_token(url: str, scopes: str, client_id: str, client_secret: str, user: str, password: str) -> dict:
     """
     Get access token info.
     """
     data = {'grant_type': 'password',
-            'scope': 'uid',
+            'scope': scopes,
             'username': user,
             'password': password}
     request = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response

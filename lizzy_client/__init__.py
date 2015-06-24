@@ -66,6 +66,7 @@ def common_options(function):
     function = click.option('--user', '-u')(function)
     function = click.option('--client-secret', '-s')(function)
     function = click.option('--client-id', '-i')(function)
+    function = click.option('--scopes', '-g')(function)
     function = click.option('--token-url', '-t')(function)
     function = click.option('--lizzy-url', '-l')(function)
     function = click.option('--configuration', '-c')(function)
@@ -93,7 +94,7 @@ def create(definition: str,
 
     with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(parameters.token_url,
+            token_info = get_token(parameters.token_url, parameters.scopes,
                                    parameters.client_id, parameters.client_secret,
                                    parameters.user, parameters.password)
             action.progress()
@@ -152,7 +153,7 @@ def list_stacks(configuration: str,
         fatal_error(e.message)
 
     try:
-        token_info = get_token(parameters.token_url,
+        token_info = get_token(parameters.token_url, parameters.scopes,
                                parameters.client_id, parameters.client_secret,
                                parameters.user, parameters.password)
     except requests.RequestException as e:
@@ -220,7 +221,7 @@ def traffic(stack_name: str,
 
     with Action('Fetching authentication token..'):
         try:
-            token_info = get_token(parameters.token_url,
+            token_info = get_token(parameters.token_url, parameters.scopes,
                                    parameters.client_id, parameters.client_secret,
                                    parameters.user, parameters.password)
         except requests.RequestException as e:
@@ -254,7 +255,7 @@ def delete(stack_name: str,
 
     with Action('Fetching authentication token..'):
         try:
-            token_info = get_token(parameters.token_url,
+            token_info = get_token(parameters.token_url, parameters.scopes,
                                    parameters.client_id, parameters.client_secret,
                                    parameters.user, parameters.password)
         except requests.RequestException as e:

@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 setup(
     name='lizzy-client',
     packages=find_packages(),
-    version='0.1.dev1',
+    version='0.1.201506241030',
     description='Lizzy-client',
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
