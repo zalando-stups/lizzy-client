@@ -19,6 +19,7 @@ def get_token(url: str, client_id: str, client_secret: str, user: str, password:
     Get access token info.
     """
     data = {'grant_type': 'password',
+            'scope': 'uid',
             'username': user,
             'password': password}
     request = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
