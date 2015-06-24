@@ -61,34 +61,41 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
                             help='Auto update the screen every X seconds')
 
 
+def common_options(function):
+    function = click.option('--password', '-p')(function)
+    function = click.option('--user', '-u')(function)
+    function = click.option('--client-secret', '-s')(function)
+    function = click.option('--client-id', '-i')(function)
+    function = click.option('--token-url', '-t')(function)
+    function = click.option('--lizzy-url', '-l')(function)
+    function = click.option('--configuration', '-c')(function)
+
+    return function
+
+
 @cli.command()
 @click.argument('definition')  # TODO add definition type like senza
 @click.argument('image_version')
-@click.option('--configuration', '-c')
+@common_options
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
-@click.option('--user', '-u')
-@click.option('--password', '-p')
-@click.option('--lizzy-url', '-l')
-@click.option('--token-url', '-t')
 def create(definition: str,
            image_version: str,
            configuration: str,
            keep_stacks: str,
            traffic: str,
-           user: str,
-           password: str,
-           lizzy_url: str,
-           token_url: str):
+           **kwargs):
     try:
-        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters = Parameters(configuration, **kwargs)
         parameters.validate()
     except ConfigurationError as e:
         fatal_error(e.message)
 
     with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+            token_info = get_token(parameters.token_url,
+                                   parameters.client_id, parameters.client_secret,
+                                   parameters.user, parameters.password)
             action.progress()
         except requests.RequestException as e:
             action.fatal_error('Authentication failed: {}'.format(e))
@@ -126,33 +133,28 @@ def create(definition: str,
 
 @cli.command('list')
 @click.argument('stack_ref', nargs=-1)
-@click.option('--configuration', '-c')
-@click.option('--user', '-u')
-@click.option('--password', '-p')
-@click.option('--lizzy-url', '-l')
-@click.option('--token-url', '-t')
+@common_options
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
 @watch_option
 @output_option
-def list_stacks(stack_ref: str,
-                configuration: str,
-                user: str,
-                password: str,
-                lizzy_url: str,
-                token_url: str,
+def list_stacks(configuration: str,
+                stack_ref: str,
                 all: bool,
                 watch: int,
-                output: str):
+                output: str,
+                **kwargs):
     """List Lizzy stacks"""
 
     try:
-        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters = Parameters(configuration, **kwargs)
         parameters.validate()
     except ConfigurationError as e:
         fatal_error(e.message)
 
     try:
-        token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+        token_info = get_token(parameters.token_url,
+                               parameters.client_id, parameters.client_secret,
+                               parameters.user, parameters.password)
     except requests.RequestException as e:
         fatal_error('Authentication failed: {}'.format(e))
 
@@ -204,28 +206,23 @@ def list_stacks(stack_ref: str,
 @click.argument('stack_name')
 @click.argument('stack_version')
 @click.argument('percentage', type=FloatRange(0, 100, clamp=True))
-@click.option('--configuration', '-c')
-@click.option('--user', '-u')
-@click.option('--password', '-p')
-@click.option('--lizzy-url', '-l')
-@click.option('--token-url', '-t')
+@common_options
 def traffic(stack_name: str,
             stack_version: str,
             percentage: int,
             configuration: str,
-            user: str,
-            password: str,
-            lizzy_url: str,
-            token_url: str):
+            **kwargs):
     try:
-        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters = Parameters(configuration, **kwargs)
         parameters.validate()
     except ConfigurationError as e:
         fatal_error(e.message)
 
     with Action('Fetching authentication token..'):
         try:
-            token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+            token_info = get_token(parameters.token_url,
+                                   parameters.client_id, parameters.client_secret,
+                                   parameters.user, parameters.password)
         except requests.RequestException as e:
             fatal_error('Authentication failed: {}'.format(e))
 
@@ -244,27 +241,22 @@ def traffic(stack_name: str,
 @cli.command()
 @click.argument('stack_name')
 @click.argument('stack_version')
-@click.option('--configuration', '-c')
-@click.option('--user', '-u')
-@click.option('--password', '-p')
-@click.option('--lizzy-url', '-l')
-@click.option('--token-url', '-t')
+@common_options
 def delete(stack_name: str,
            stack_version: str,
            configuration: str,
-           user: str,
-           password: str,
-           lizzy_url: str,
-           token_url: str):
+           **kwargs):
     try:
-        parameters = Parameters(configuration, user=user, password=password, lizzy_url=lizzy_url, token_url=token_url)
+        parameters = Parameters(configuration, **kwargs)
         parameters.validate()
     except ConfigurationError as e:
         fatal_error(e.message)
 
     with Action('Fetching authentication token..'):
         try:
-            token_info = get_token(parameters.token_url, parameters.user, parameters.password)
+            token_info = get_token(parameters.token_url,
+                                   parameters.client_id, parameters.client_secret,
+                                   parameters.user, parameters.password)
         except requests.RequestException as e:
             fatal_error('Authentication failed: {}'.format(e))
 

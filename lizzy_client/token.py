@@ -14,11 +14,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 import requests
 
 
-def get_token(url, user, password) -> dict:
+def get_token(url: str, client_id: str, client_secret: str, user: str, password: str) -> dict:
     """
     Get access token info.
     """
-    request = requests.get(url=url, auth=(user, password))
+    data = {'grant_type': 'password',
+            'username': user,
+            'password': password}
+    request = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
     request.raise_for_status()
-    token_info = request.json()
+    token_info = request.json()  # type: dict
     return token_info
