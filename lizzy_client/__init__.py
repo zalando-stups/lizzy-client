@@ -62,6 +62,8 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
 
 
 def common_options(function):
+    default_configuration = '{}/lizzy.yaml'.format(click.get_app_dir('lizzy'))
+
     function = click.option('--password', '-p')(function)
     function = click.option('--user', '-u')(function)
     function = click.option('--client-secret', '-s')(function)
@@ -69,7 +71,7 @@ def common_options(function):
     function = click.option('--scopes', '-g')(function)
     function = click.option('--token-url', '-t')(function)
     function = click.option('--lizzy-url', '-l')(function)
-    function = click.option('--configuration', '-c')(function)
+    function = click.option('--configuration', '-c', default=default_configuration)(function)
 
     return function
 

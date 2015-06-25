@@ -26,16 +26,14 @@ class Parameters:
     def __init__(self,
                  configuration_path: str,
                  **kwargs):
-        if configuration_path:
-            try:
-                with open(configuration_path) as configuration_file:
-                    self.configuration_options = yaml.safe_load(configuration_file)
-            except FileNotFoundError:
-                raise ConfigurationError('Configuration file not found.')
-            except yaml.YAMLError:
-                raise ConfigurationError('Error parsing YAML file.')
-        else:
+        try:
+            with open(configuration_path) as configuration_file:
+                self.configuration_options = yaml.safe_load(configuration_file)
+        except FileNotFoundError:
+            # if the file is not found then it's just ignored, because it can be the default location
             self.configuration_options = {}
+        except yaml.YAMLError:
+            raise ConfigurationError('Error parsing YAML file.')
         self.command_line_options = kwargs
 
     def __getattr__(self, item: str):
