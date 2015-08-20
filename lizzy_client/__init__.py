@@ -119,7 +119,7 @@ def create(definition: str,
 
     info('Stack ID: {}'.format(stack_id))
 
-    with Action('Wating for new stack..') as action:
+    with Action('Waiting for new stack...') as action:
         for status in lizzy.wait_for_deployment(stack_id):
             final_state = status
             action.progress()
