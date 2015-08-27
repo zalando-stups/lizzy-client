@@ -115,7 +115,7 @@ def create(definition: str,
         try:
             stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition)
         except requests.RequestException as e:
-            action.fatal_error('Deployment failed:: {}'.format(e))
+            action.fatal_error('Deployment failed: {}'.format(e))
 
     info('Stack ID: {}'.format(stack_id))
 
@@ -173,7 +173,7 @@ def list_stacks(configuration: str,
     while repeat:
         try:
             all_stacks = lizzy.get_stacks()
-        except requests.HTTPError as e:
+        except requests.RequestException as e:
             fatal_error('Failed to get stacks: {}'.format(e))
 
         if all:
