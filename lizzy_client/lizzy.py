@@ -89,7 +89,6 @@ class Lizzy:
         request.raise_for_status()
 
     def wait_for_deployment(self, stack_id: str) -> [str]:
-        last_status = None
         retries = 3
         while retries:
             try:
@@ -97,9 +96,7 @@ class Lizzy:
 
                 retries = 3  # reset the number of retries
                 status = stack["status"]
-                if status != last_status:
-                    last_status = status
-                    yield status
+                yield status
                 if status in FINAL_STATES:
                     return status
             except Exception as e:
