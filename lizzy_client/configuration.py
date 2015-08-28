@@ -21,6 +21,9 @@ class ConfigurationError(Exception):
     def __init__(self, message: str):
         self.message = message
 
+    def __str__(self):
+        return self.message
+
 
 class Parameters:
     def __init__(self,
@@ -46,6 +49,6 @@ class Parameters:
         """
         for parameter in REQUIRED:
             # verify is all required parameters are set either on command line arguments or configuration
-            cli_name = parameter.replace('_', '-')  # name on the command line
+            cli_name = parameter.replace('-', '_')  # name on the command line
             if not (self.command_line_options.get(cli_name) or self.configuration_options.get(parameter)):
                 raise ConfigurationError('Error: Missing option "--{parameter}".'.format(parameter=parameter))

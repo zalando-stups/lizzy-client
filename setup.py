@@ -13,9 +13,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
 import datetime
 
 version = "0.1.{:%Y%m%d%H%M}".format(datetime.datetime.now())
+
+class PyTest(TestCommand):
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.cov = None
+        self.pytest_args = ['--cov-config', '.coveragerc','--cov', 'lizzy-client', '--cov-report', 'term-missing']
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        import pytest
+        errno = pytest.main(self.pytest_args)
+        sys.exit(errno)
+
 
 setup(
     name='lizzy-client',
@@ -26,6 +45,8 @@ setup(
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
     install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'python-dateutil'],
+    tests_require=['pytest-cov', 'pytest'],
+    cmdclass={'test': PyTest},
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.4',
