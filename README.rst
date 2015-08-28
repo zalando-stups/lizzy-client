@@ -1,3 +1,7 @@
+.. image:: https://travis-ci.org/zalando/lizzy-client.svg?branch=master
+   :target: https://travis-ci.org/zalando/lizzy-client
+   :alt: Travis CI build status
+
 Lizzy Client
 ============
 
