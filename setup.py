@@ -15,6 +15,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 import datetime
+import sys
 
 version = "0.1.{:%Y%m%d%H%M}".format(datetime.datetime.now())
 
