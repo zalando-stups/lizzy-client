@@ -82,11 +82,13 @@ def common_options(function):
 @common_options
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
+@click.option('--verbose', is_flag=True)
 def create(definition: str,
            image_version: str,
            configuration: str,
            keep_stacks: str,
            traffic: str,
+           verbose: bool,
            **kwargs):
     try:
         parameters = Parameters(configuration, **kwargs)
@@ -120,16 +122,23 @@ def create(definition: str,
     info('Stack ID: {}'.format(stack_id))
 
     with Action('Waiting for new stack...') as action:
-        for status in lizzy.wait_for_deployment(stack_id):
-            final_state = status
-            action.progress()
+        if verbose:
+            print()  # ensure that new states will not be printed on the same line as the action
 
-        if final_state == 'CF:ROLLBACK_COMPLETE':
+        last_state = None
+        for state in lizzy.wait_for_deployment(stack_id):
+            if state != last_state and verbose:
+                click.echo(' {}'.format(state))
+            else:
+                action.progress()
+            last_state = state
+
+        if last_state == 'CF:ROLLBACK_COMPLETE':
             fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
-        elif final_state == 'LIZZY:REMOVED':
+        elif last_state == 'LIZZY:REMOVED':
             fatal_error('Stack was removed before deployment finished.')
-        elif final_state != 'CF:CREATE_COMPLETE':
-            fatal_error('Deployment failed: {}'.format(final_state))
+        elif last_state != 'CF:CREATE_COMPLETE':
+            fatal_error('Deployment failed: {}'.format(last_state))
 
     info('Deployment Successful')
 
