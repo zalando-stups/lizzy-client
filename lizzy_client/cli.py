@@ -82,7 +82,7 @@ def common_options(function):
 @common_options
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
-@click.option('--verbose', is_flag=True)
+@click.option('--verbose', '-v', is_flag=True)
 def create(definition: str,
            image_version: str,
            configuration: str,
