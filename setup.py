@@ -19,12 +19,12 @@ import sys
 
 version = "0.1.{:%Y%m%d%H%M}".format(datetime.datetime.now())
 
-class PyTest(TestCommand):
 
+class PyTest(TestCommand):
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.cov = None
-        self.pytest_args = ['--cov-config', '.coveragerc','--cov', 'lizzy_client', '--cov-report', 'term-missing']
+        self.pytest_args = ['--cov-config', '.coveragerc', '--cov', 'lizzy_client', '--cov-report', 'term-missing']
 
     def finalize_options(self):
         TestCommand.finalize_options(self)
@@ -33,6 +33,7 @@ class PyTest(TestCommand):
 
     def run_tests(self):
         import pytest
+
         errno = pytest.main(self.pytest_args)
         sys.exit(errno)
 
