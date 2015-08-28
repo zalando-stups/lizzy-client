@@ -2,3 +2,4 @@ build
 dist
 *.egg-info
 dev_config.yaml
+.coverage

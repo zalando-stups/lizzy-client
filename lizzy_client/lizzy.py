@@ -27,7 +27,7 @@ FINAL_STATES = ["CF:CREATE_COMPLETE",
                 "LIZZY:REMOVED"]
 
 
-def make_header(access_token):
+def make_header(access_token: str):
     headers = dict()
     headers['Authorization'] = 'Bearer {}'.format(access_token)
     headers['Content-type'] = 'application/json'
