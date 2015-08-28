@@ -14,6 +14,33 @@ Unless required by applicable law or agreed to in writing, software distributed 
 import requests
 
 
+class TokenException(Exception):
+    """
+    Common Parent Exception for all errors that happen when getting the access token
+    """
+
+    def __str__(self):
+        return self.error_msg
+
+
+class AuthenticationError(TokenException):
+    """
+    Exception to be raised if authentication failed
+    """
+
+    def __init__(self, response: requests.Response):
+        self.response = response
+        # do to the implementation of Response.ok, status_code is always between 400 and 599
+        error_side = 'Server' if 500 <= response.status_code < 600 else 'Client'
+        self.error_msg = '{response.status_code} {error_side} Error: {response.reason}'.format_map(locals())
+
+
+class TokenInfoError(TokenException):
+    def __init__(self, error_msg: str):
+        self.response = None
+        self.error_msg = error_msg
+
+
 def get_token(url: str, scopes: str, client_id: str, client_secret: str, user: str, password: str) -> dict:
     """
     Get access token info.
@@ -22,7 +49,12 @@ def get_token(url: str, scopes: str, client_id: str, client_secret: str, user: s
             'scope': scopes,
             'username': user,
             'password': password}
-    request = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
-    request.raise_for_status()
-    token_info = request.json()  # type: dict
-    return token_info
+    response = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
+    if not response.ok:
+        raise AuthenticationError(response)
+    token_info = response.json()  # type: dict
+    try:
+        access_token = token_info['access_token']
+    except KeyError:
+        raise TokenInfoError('"access_token" not on json.')
+    return access_token

@@ -18,7 +18,7 @@ import requests
 import time
 
 from .lizzy import Lizzy
-from .token import get_token
+from .token import get_token, TokenException
 from .configuration import ConfigurationError, Parameters
 
 STYLES = {
@@ -98,18 +98,12 @@ def create(definition: str,
 
     with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(parameters.token_url, parameters.scopes,
-                                   parameters.client_id, parameters.client_secret,
-                                   parameters.user, parameters.password)
+            access_token = get_token(parameters.token_url, parameters.scopes,
+                                     parameters.client_id, parameters.client_secret,
+                                     parameters.user, parameters.password)
             action.progress()
-        except requests.RequestException as e:
+        except TokenException as e:
             action.fatal_error('Authentication failed: {}'.format(e))
-
-        try:
-            access_token = token_info['access_token']
-            action.progress()
-        except KeyError:
-            action.fatal_error('Authentication failed: "access_token" not on json.')
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -163,17 +157,14 @@ def list_stacks(configuration: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    try:
-        token_info = get_token(parameters.token_url, parameters.scopes,
-                               parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password)
-    except requests.RequestException as e:
-        fatal_error('Authentication failed: {}'.format(e))
-
-    try:
-        access_token = token_info['access_token']
-    except KeyError:
-        fatal_error('Authentication failed: "access_token" not on json.')
+    with Action('Fetching authentication token..') as action:
+        try:
+            access_token = get_token(parameters.token_url, parameters.scopes,
+                                     parameters.client_id, parameters.client_secret,
+                                     parameters.user, parameters.password)
+            action.progress()
+        except TokenException as e:
+            action.fatal_error('Authentication failed: {}'.format(e))
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -230,18 +221,14 @@ def traffic(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..'):
+    with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(parameters.token_url, parameters.scopes,
-                                   parameters.client_id, parameters.client_secret,
-                                   parameters.user, parameters.password)
-        except requests.RequestException as e:
-            fatal_error('Authentication failed: {}'.format(e))
-
-        try:
-            access_token = token_info['access_token']
-        except KeyError:
-            fatal_error('Authentication failed: "access_token" not on json.')
+            access_token = get_token(parameters.token_url, parameters.scopes,
+                                     parameters.client_id, parameters.client_secret,
+                                     parameters.user, parameters.password)
+            action.progress()
+        except TokenException as e:
+            action.fatal_error('Authentication failed: {}'.format(e))
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -264,18 +251,14 @@ def delete(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..'):
+    with Action('Fetching authentication token..') as action:
         try:
-            token_info = get_token(parameters.token_url, parameters.scopes,
-                                   parameters.client_id, parameters.client_secret,
-                                   parameters.user, parameters.password)
-        except requests.RequestException as e:
-            fatal_error('Authentication failed: {}'.format(e))
-
-        try:
-            access_token = token_info['access_token']
-        except KeyError:
-            fatal_error('Authentication failed: "access_token" not on json.')
+            access_token = get_token(parameters.token_url, parameters.scopes,
+                                     parameters.client_id, parameters.client_secret,
+                                     parameters.user, parameters.password)
+            action.progress()
+        except TokenException as e:
+            action.fatal_error('Authentication failed: {}'.format(e))
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
