@@ -1,9 +1,13 @@
+Lizzy Client
+============
+
 .. image:: https://travis-ci.org/zalando/lizzy-client.svg?branch=master
    :target: https://travis-ci.org/zalando/lizzy-client
    :alt: Travis CI build status
 
-Lizzy Client
-============
+.. image:: https://coveralls.io/repos/zalando/lizzy-client/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/zalando/lizzy-client?branch=master
+  :alt: Coveralls status
 
 Script to deploy Senza_ definitions using a Lizzy_ server.
 
