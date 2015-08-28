@@ -1,7 +1,6 @@
-from mock import MagicMock, Mock
-from requests import Response, HTTPError
+from mock import MagicMock
+from requests import Response
 import json
-import pytest
 
 from lizzy_client.lizzy import make_header, Lizzy
 
