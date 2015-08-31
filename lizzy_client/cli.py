@@ -76,6 +76,23 @@ def common_options(function):
     return function
 
 
+def fetch_token(token_url: str, scopes: list,
+                client_id: str, client_secret: str,
+                user: str, password: str) -> str:
+    """
+    Common function to fetch token
+    :return:
+    """
+
+    with Action('Fetching authentication token..') as action:
+        try:
+            access_token = get_token(token_url, scopes, client_id, client_secret, user, password)
+            action.progress()
+        except TokenException as e:
+            action.fatal_error('Authentication failed: {}'.format(e))
+    return access_token
+
+
 @main.command()
 @click.argument('definition')  # TODO add definition type like senza
 @click.argument('image_version')
@@ -96,14 +113,8 @@ def create(definition: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..') as action:
-        try:
-            access_token = get_token(parameters.token_url, parameters.scopes,
-                                     parameters.client_id, parameters.client_secret,
-                                     parameters.user, parameters.password)
-            action.progress()
-        except TokenException as e:
-            action.fatal_error('Authentication failed: {}'.format(e))
+    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
+                               parameters.user, parameters.password)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -157,14 +168,8 @@ def list_stacks(configuration: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..') as action:
-        try:
-            access_token = get_token(parameters.token_url, parameters.scopes,
-                                     parameters.client_id, parameters.client_secret,
-                                     parameters.user, parameters.password)
-            action.progress()
-        except TokenException as e:
-            action.fatal_error('Authentication failed: {}'.format(e))
+    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
+                               parameters.user, parameters.password)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -221,14 +226,8 @@ def traffic(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..') as action:
-        try:
-            access_token = get_token(parameters.token_url, parameters.scopes,
-                                     parameters.client_id, parameters.client_secret,
-                                     parameters.user, parameters.password)
-            action.progress()
-        except TokenException as e:
-            action.fatal_error('Authentication failed: {}'.format(e))
+    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
+                               parameters.user, parameters.password)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -251,14 +250,8 @@ def delete(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    with Action('Fetching authentication token..') as action:
-        try:
-            access_token = get_token(parameters.token_url, parameters.scopes,
-                                     parameters.client_id, parameters.client_secret,
-                                     parameters.user, parameters.password)
-            action.progress()
-        except TokenException as e:
-            action.fatal_error('Authentication failed: {}'.format(e))
+    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
+                               parameters.user, parameters.password)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
