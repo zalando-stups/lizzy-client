@@ -16,7 +16,7 @@ class FakeLizzy:
     raise_exception = False
 
     def __init__(self, base_url: str, access_token: str):
-        pass
+        ...
 
     @classmethod
     def reset(cls):
@@ -24,13 +24,16 @@ class FakeLizzy:
         cls.raise_exception = False
 
     def delete(self, stack_id):
-        pass
+        ...
 
     def new_stack(self, image_version, keep_stacks, traffic, definition):
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:
             return '57ACC1D'
+
+    def traffic(self, stack_id, percentage):
+        ...
 
     def wait_for_deployment(self, stack_id: str) -> [str]:
         return ['CF:WAITING', self.final_state]
@@ -61,6 +64,9 @@ def test_not_enough_parameters(monkeypatch):
     assert 'Error: Missing option' in result.output
 
     result = runner.invoke(main, ['delete', '-c', 'none', 'lizzy_test', 'version'])
+    assert 'Error: Missing option' in result.output
+
+    result = runner.invoke(main, ['traffic', '-c', 'none', 'lizzy_test', 'version', '100'])
     assert 'Error: Missing option' in result.output
 
     result = runner.invoke(main, ['delete'])
@@ -121,3 +127,9 @@ def test_delete(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
     result = runner.invoke(main, ['delete', '-c', config_path, 'lizzy-test', '1.0'])
     assert 'Requesting stack deletion.. OK' in result.output
+
+
+def test_traffic(mock_get_token, mock_fake_lizzy):
+    runner = CliRunner()
+    result = runner.invoke(main, ['traffic', '-c', config_path, 'lizzy-test', '1.0', '90'])
+    assert 'Requesting traffic change.. OK' in result.output
