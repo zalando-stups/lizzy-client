@@ -122,7 +122,7 @@ def create(definition: str,
         try:
             stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition)
         except requests.RequestException as e:
-            action.fatal_error('Deployment failed: {}'.format(e))
+            action.fatal_error('Deployment failed: {}.'.format(e))
 
     info('Stack ID: {}'.format(stack_id))
 
@@ -143,7 +143,7 @@ def create(definition: str,
         elif last_state == 'LIZZY:REMOVED':
             fatal_error('Stack was removed before deployment finished.')
         elif last_state != 'CF:CREATE_COMPLETE':
-            fatal_error('Deployment failed: {}'.format(last_state))
+            fatal_error('Deployment failed: {}.'.format(last_state))
 
     info('Deployment Successful')
 
