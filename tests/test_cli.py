@@ -2,7 +2,7 @@ import pytest
 import os.path
 import requests
 from click.testing import CliRunner
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 from lizzy_client.cli import main, fetch_token
 from lizzy_client.token import TokenException
