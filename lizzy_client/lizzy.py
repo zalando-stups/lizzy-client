@@ -93,15 +93,14 @@ class Lizzy:
         while retries:
             try:
                 stack = self.get_stack(stack_id)
-
-                retries = 3  # reset the number of retries
                 status = stack["status"]
+                retries = 3  # reset the number of retries
                 yield status
                 if status in FINAL_STATES:
                     return status
             except Exception as e:
                 retries -= 1
-                yield 'Failed to get stack ({retries} retries left): {exception}.'.format(retries=retries, exception=e)
+                yield 'Failed to get stack ({retries} retries left): {exception}.'.format(retries=retries,
+                                                                                          exception=repr(e))
 
             time.sleep(10)
-        return None

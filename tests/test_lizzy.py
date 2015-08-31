@@ -100,3 +100,24 @@ def test_new_stack(monkeypatch):
     assert mock_kwargs['headers'] == header
 
     assert stack_id == "574CC1D"
+
+
+def test_wait_for_deployment(monkeypatch):
+    monkeypatch.setattr('time.sleep', MagicMock())
+    mock_get_stack = MagicMock()
+    mock_get_stack.side_effect = [{'status': 'CF:SOME_STATE'}, {'status': 'CF:SOME_STATE'},
+                                  {'status': 'CF:SOME_OTHER_STATE'}, {'status': 'CF:CREATE_COMPLETE'}]
+    monkeypatch.setattr('lizzy_client.lizzy.Lizzy.get_stack', mock_get_stack)
+
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    states = list(lizzy.wait_for_deployment('574CC1D'))
+
+    assert states == ['CF:SOME_STATE', 'CF:SOME_STATE', 'CF:SOME_OTHER_STATE', 'CF:CREATE_COMPLETE']
+
+    mock_get_stack.reset_mock()
+    mock_get_stack.side_effect = [{'wrong_key': 'CF:SOME_STATE'}, {'wrong_key': 'CF:SOME_STATE'},
+                                  {'wrong_key': 'CF:SOME_STATE'}]
+    states = list(lizzy.wait_for_deployment('574CC1D'))
+    assert states == ["Failed to get stack (2 retries left): KeyError('status',).",
+                      "Failed to get stack (1 retries left): KeyError('status',).",
+                      "Failed to get stack (0 retries left): KeyError('status',).", ]
