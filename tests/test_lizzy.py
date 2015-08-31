@@ -1,6 +1,7 @@
 from mock import MagicMock
 from requests import Response
 import json
+import os
 
 from lizzy_client.lizzy import make_header, Lizzy
 
@@ -80,3 +81,22 @@ def test_traffic(monkeypatch):
     header = make_header('7E5770K3N')
     mock_patch.assert_called_once_with('https://lizzy.example/stacks/574CC', headers=header, data='{"new_traffic": 42}',
                                        verify=False)
+
+
+def test_new_stack(monkeypatch):
+    test_dir = os.path.dirname(__file__)
+    yaml_path = os.path.join(test_dir, 'test_config.yaml')  # we can use any file for this test
+
+    mock_post = MagicMock()
+    mock_post.return_value = FakeResponse(200, '{"stack_id":"574CC1D"}')
+    monkeypatch.setattr('requests.post', mock_post)
+
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    stack_id = lizzy.new_stack('10', 2, 42, yaml_path)
+
+    header = make_header('7E5770K3N')
+    mock_args, mock_kwargs = mock_post.call_args
+    assert mock_args == ('https://lizzy.example/stacks',)
+    assert mock_kwargs['headers'] == header
+
+    assert stack_id == "574CC1D"
