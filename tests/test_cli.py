@@ -23,6 +23,9 @@ class FakeLizzy:
         cls.final_state = 'CF:CREATE_COMPLETE'
         cls.raise_exception = False
 
+    def delete(self, stack_id):
+        pass
+
     def new_stack(self, image_version, keep_stacks, traffic, definition):
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
@@ -54,9 +57,11 @@ def test_not_enough_parameters(monkeypatch):
 
     runner = CliRunner()
 
-    with runner.isolated_filesystem():
-        result = runner.invoke(main, ['create', '-c', 'none', 'definition', 'version'])
-        assert 'Error: Missing option' in result.output
+    result = runner.invoke(main, ['create', '-c', 'none', 'definition', 'version'])
+    assert 'Error: Missing option' in result.output
+
+    result = runner.invoke(main, ['delete', '-c', 'none', 'lizzy_test', 'version'])
+    assert 'Error: Missing option' in result.output
 
     result = runner.invoke(main, ['delete'])
     assert 'Error: Missing argument' in result.output
@@ -110,3 +115,9 @@ def test_create(mock_get_token, mock_fake_lizzy):
     FakeLizzy.raise_exception = True
     result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
     assert 'Deployment failed: 404 Not Found.' in result.output
+
+
+def test_delete(mock_get_token, mock_fake_lizzy):
+    runner = CliRunner()
+    result = runner.invoke(main, ['delete', '-c', config_path, 'lizzy-test', '1.0'])
+    assert 'Requesting stack deletion.. OK' in result.output
