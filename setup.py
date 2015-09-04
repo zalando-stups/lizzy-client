@@ -57,5 +57,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     long_description='Lizzy-client',
-    entry_points={'console_scripts': ['lizzy = lizzy_client:cli']},
+    entry_points={'console_scripts': ['lizzy = lizzy_client.cli:main']},
 )
