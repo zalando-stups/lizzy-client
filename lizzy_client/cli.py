@@ -1,3 +1,4 @@
+
 """
 Copyright 2015 Zalando SE
 
@@ -100,13 +101,16 @@ def fetch_token(token_url: str, scopes: list,
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
 @click.option('--verbose', '-v', is_flag=True)
+@click.argument('senza_parameters', nargs=-1)
 def create(definition: str,
            image_version: str,
            configuration: str,
            keep_stacks: str,
            traffic: str,
            verbose: bool,
+           senza_parameters: list,
            **kwargs):
+    senza_parameters = senza_parameters or []
     try:
         parameters = Parameters(configuration, **kwargs)
         parameters.validate()
@@ -120,7 +124,7 @@ def create(definition: str,
 
     with Action('Requesting new stack..') as action:
         try:
-            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition)
+            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition, senza_parameters)
         except requests.RequestException as e:
             action.fatal_error('Deployment failed: {}.'.format(e))
 
