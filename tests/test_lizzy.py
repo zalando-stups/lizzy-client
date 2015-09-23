@@ -92,7 +92,7 @@ def test_new_stack(monkeypatch):
     monkeypatch.setattr('requests.post', mock_post)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack_id = lizzy.new_stack('10', 2, 42, yaml_path)
+    stack_id = lizzy.new_stack('10', 2, 42, yaml_path, [])
 
     header = make_header('7E5770K3N')
     mock_args, mock_kwargs = mock_post.call_args
