@@ -41,7 +41,7 @@ class Parameters:
 
     def __getattr__(self, item: str):
         config_name = item.replace('_', '-')
-        return self.command_line_options.get(item) or self.configuration_options[config_name]
+        return self.command_line_options.get(item) or self.configuration_options.get(config_name)
 
     def validate(self):
         """

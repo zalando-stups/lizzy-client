@@ -79,7 +79,7 @@ def common_options(function):
 
 def fetch_token(token_url: str, scopes: list,
                 client_id: str, client_secret: str,
-                user: str, password: str) -> str:
+                user: str, password: str, human_mode: bool) -> str:
     """
     Common function to fetch token
     :return:
@@ -87,7 +87,7 @@ def fetch_token(token_url: str, scopes: list,
 
     with Action('Fetching authentication token..') as action:
         try:
-            access_token = get_token(token_url, scopes, client_id, client_secret, user, password)
+            access_token = get_token(token_url, scopes, client_id, client_secret, user, password, human_mode)
             action.progress()
         except TokenException as e:
             action.fatal_error('Authentication failed: {}'.format(e))
@@ -118,7 +118,7 @@ def create(definition: str,
         fatal_error(e.message)
 
     access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password)
+                               parameters.user, parameters.password, parameters.human_mode)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -173,7 +173,7 @@ def list_stacks(configuration: str,
         fatal_error(e.message)
 
     access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password)
+                               parameters.user, parameters.password, parameters.human_mode)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -231,7 +231,7 @@ def traffic(stack_name: str,
         fatal_error(e.message)
 
     access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password)
+                               parameters.user, parameters.password, parameters.human_mode)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -255,7 +255,7 @@ def delete(stack_name: str,
         fatal_error(e.message)
 
     access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password)
+                               parameters.user, parameters.password, parameters.human_mode)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 

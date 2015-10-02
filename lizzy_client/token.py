@@ -44,15 +44,21 @@ class TokenInfoError(TokenException):
         self.error_msg = error_msg
 
 
-def get_token(url: str, scopes: str, client_id: str, client_secret: str, user: str, password: str) -> dict:
+def get_token(url: str, scopes: str, client_id: str, client_secret: str, user: str, password: str,
+              human_mode=False) -> dict:
     """
     Get access token info.
     """
-    data = {'grant_type': 'password',
-            'scope': scopes,
-            'username': user,
-            'password': password}
-    response = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
+
+    if human_mode:
+        response = requests.get(url=url, auth=(user, password))  # , data=data)  # type: requests.Response
+    else:
+        data = {'grant_type': 'password',
+                'scope': scopes,
+                'username': user,
+                'password': password}
+        response = requests.post(url=url, auth=(client_id, client_secret), data=data)  # type: requests.Response
+
     if not response.ok:
         raise AuthenticationError(response)
     token_info = response.json()  # type: dict
