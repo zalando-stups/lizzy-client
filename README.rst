@@ -27,6 +27,7 @@ List stacks
 Use the `list` subcommand to list stacks:
 
 .. code-block::
+
     $ lizzy list -c config.yaml
 
 For see more options use `lizzy list --help`.
@@ -36,6 +37,7 @@ Change stack traffic
 Use the `traffic` subcommand to change the stacks traffic:
 
 .. code-block::
+
     $ lizzy traffic -c config.yaml my_app 1.0 95
 
 For see more options use `lizzy traffic --help`.
@@ -45,22 +47,26 @@ Deleting stacks
 Use the `delete` subcommand to delete stacks:
 
 .. code-block::
+
     $ lizzy delete -c config.yaml my_app 1.0
 
 For see more options use `lizzy delete --help`.
 
 Configuration
 -------------
-`user`, `password`, `token-url`, `lizzy-url` can be set on a configuration file:
+`token-url`, `lizzy-url` can be set on a configuration file:
 
 .. code-block::
 
-      user: USERNAME
-      password: PASSWORD
       lizzy-url: https://lizzyserver.example/
       token-url: https://token.url.example/access_token
 
-Note that this four values must be set either on the configuration file or as a command line argument.
+Note that this two values must be set either on the configuration file or as a command line argument.
+
+Authentication
+--------------
+Lizzy client works with Berry_ out of the box. To run it locally for testing purposes see `python-token's documentation
+<https://github.com/zalando-stups/python-tokens#local-testing>`_.
 
 License
 -------
@@ -78,5 +84,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+.. _Berry: https://github.com/zalando-stups/berry
 .. _Lizzy: https://github.com/zalando/lizzy
 .. _Senza: https://github.com/zalando-stups/senza
