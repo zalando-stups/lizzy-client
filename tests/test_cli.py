@@ -3,9 +3,9 @@ import os.path
 import requests
 from click.testing import CliRunner
 from unittest.mock import MagicMock
+from tokens import InvalidCredentialsError
 
 from lizzy_client.cli import main, fetch_token
-from lizzy_client.token import TokenException
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
@@ -74,11 +74,11 @@ def test_not_enough_parameters(monkeypatch):
 
 
 def test_fetch_token(mock_get_token):
-    token = fetch_token('https://example.com', ['scope'], 'test', 'test_secret', 'user', 'password')
+    token = fetch_token('https://example.com', ['scope'])
 
     assert token == '4CC3557OCC3N'
 
-    mock_get_token.side_effect = TokenException('Error')
+    mock_get_token.side_effect = InvalidCredentialsError('Error')
 
     with pytest.raises(SystemExit) as exc_info:  # type: py.code.ExceptionInfo
         fetch_token('https://example.com', ['scope'], 'test', 'test_secret', 'user', 'password')

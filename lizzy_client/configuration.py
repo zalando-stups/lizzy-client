@@ -14,7 +14,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 import yaml
 
 # Parameters that must be set either in command line arguments or configuration
-REQUIRED = ['user', 'password', 'lizzy-url', 'token-url']
+REQUIRED = ['lizzy-url', 'token-url']
 
 
 class ConfigurationError(Exception):

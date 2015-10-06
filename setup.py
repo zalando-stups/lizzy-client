@@ -46,7 +46,7 @@ setup(
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
-    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'python-dateutil'],
+    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'python-dateutil', 'stups-tokens'],
     tests_require=['pytest-cov', 'pytest'],
     cmdclass={'test': PyTest},
     classifiers=[

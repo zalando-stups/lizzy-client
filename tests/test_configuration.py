@@ -39,7 +39,7 @@ def test_validation(parameters_empty, parameters_complete_with_args):
         parameters_empty.validate()
 
     exception = exc_info.value
-    assert str(exception) == 'Error: Missing option "--user".'
+    assert str(exception) == 'Error: Missing option "--lizzy-url".'
 
     parameters_complete_with_args.validate()
 

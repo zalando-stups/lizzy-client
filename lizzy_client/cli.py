@@ -13,13 +13,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 from clickclick import Action, FloatRange, OutputFormat, print_table, info, fatal_error
+from tokens import InvalidCredentialsError
 import click
 import dateutil.parser
 import requests
 import time
 
 from .lizzy import Lizzy
-from .token import get_token, TokenException
+from .token import get_token
 from .configuration import ConfigurationError, Parameters
 
 STYLES = {
@@ -65,10 +66,6 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
 def common_options(function):
     default_configuration = '{}/lizzy.yaml'.format(click.get_app_dir('lizzy'))
 
-    function = click.option('--password', '-p')(function)
-    function = click.option('--user', '-u')(function)
-    function = click.option('--client-secret', '-s')(function)
-    function = click.option('--client-id', '-i')(function)
     function = click.option('--scopes', '-g')(function)
     function = click.option('--token-url', '-t')(function)
     function = click.option('--lizzy-url', '-l')(function)
@@ -77,9 +74,7 @@ def common_options(function):
     return function
 
 
-def fetch_token(token_url: str, scopes: list,
-                client_id: str, client_secret: str,
-                user: str, password: str, human_mode: bool) -> str:
+def fetch_token(token_url: str, scopes: list) -> str:  # TODO fix scopes to be really a list
     """
     Common function to fetch token
     :return:
@@ -87,10 +82,10 @@ def fetch_token(token_url: str, scopes: list,
 
     with Action('Fetching authentication token..') as action:
         try:
-            access_token = get_token(token_url, scopes, client_id, client_secret, user, password, human_mode)
+            access_token = get_token(token_url, scopes)
             action.progress()
-        except TokenException as e:
-            action.fatal_error('Authentication failed: {}'.format(e))
+        except InvalidCredentialsError as e:
+            action.fatal_error(e)
     return access_token
 
 
@@ -117,8 +112,7 @@ def create(definition: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password, parameters.human_mode)
+    access_token = fetch_token(parameters.token_url, parameters.scopes)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -172,8 +166,7 @@ def list_stacks(configuration: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password, parameters.human_mode)
+    access_token = fetch_token(parameters.token_url, parameters.scopes)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -230,8 +223,7 @@ def traffic(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password, parameters.human_mode)
+    access_token = fetch_token(parameters.token_url, parameters.scopes)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
@@ -254,8 +246,7 @@ def delete(stack_name: str,
     except ConfigurationError as e:
         fatal_error(e.message)
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes, parameters.client_id, parameters.client_secret,
-                               parameters.user, parameters.password, parameters.human_mode)
+    access_token = fetch_token(parameters.token_url, parameters.scopes)
 
     lizzy = Lizzy(parameters.lizzy_url, access_token)
 
