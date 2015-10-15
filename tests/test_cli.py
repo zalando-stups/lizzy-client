@@ -81,7 +81,7 @@ def test_fetch_token(mock_get_token):
     mock_get_token.side_effect = InvalidCredentialsError('Error')
 
     with pytest.raises(SystemExit) as exc_info:  # type: py.code.ExceptionInfo
-        fetch_token('https://example.com', ['scope'], 'test', 'test_secret', 'user', 'password')
+        fetch_token('https://example.com', ['scope'])
 
     exception = exc_info.value
     assert repr(exception) == 'SystemExit(1,)'
