@@ -11,44 +11,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-import yaml
-
-# Parameters that must be set either in command line arguments or configuration
-REQUIRED = ['lizzy-url', 'token-url']
+from environmental import Str
 
 
-class ConfigurationError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
-
-class Parameters:
-    def __init__(self,
-                 configuration_path: str,
-                 **kwargs):
-        try:
-            with open(configuration_path) as configuration_file:
-                self.configuration_options = yaml.safe_load(configuration_file)
-        except FileNotFoundError:
-            # if the file is not found then it's just ignored, because it can be the default location
-            self.configuration_options = {}
-        except yaml.YAMLError:
-            raise ConfigurationError('Error parsing YAML file.')
-        self.command_line_options = kwargs
-
-    def __getattr__(self, item: str):
-        config_name = item.replace('_', '-')
-        return self.command_line_options.get(item) or self.configuration_options.get(config_name)
-
-    def validate(self):
-        """
-        Verify if all needed parameters are set
-        """
-        for parameter in REQUIRED:
-            # verify is all required parameters are set either on command line arguments or configuration
-            cli_name = parameter.replace('-', '_')  # name on the command line
-            if not (self.command_line_options.get(cli_name) or self.configuration_options.get(parameter)):
-                raise ConfigurationError('Error: Missing option "--{parameter}".'.format(parameter=parameter))
+class Configuration:
+    lizzy_url = Str('LIZZY_URL')
+    scopes = Str('LIZZY_SCOPES', 'uid')
+    token_url = Str('OAUTH2_ACCESS_TOKEN_URL')
+    credentials_dir = Str('CREDENTIALS_DIR', '/meta/credentials')

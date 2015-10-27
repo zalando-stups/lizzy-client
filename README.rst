@@ -18,7 +18,7 @@ Use the `create` subcommand to create stacks. The syntax is `lizzy create [OPTIO
 
 .. code-block::
 
-    $ lizzy create -c config.yaml senza.yaml 1.0
+    $ lizzy create  senza.yaml 1.0
 
 For see more options use `lizzy create --help`.
 
@@ -28,7 +28,7 @@ Use the `list` subcommand to list stacks:
 
 .. code-block::
 
-    $ lizzy list -c config.yaml
+    $ lizzy list
 
 For see more options use `lizzy list --help`.
 
@@ -38,7 +38,7 @@ Use the `traffic` subcommand to change the stacks traffic:
 
 .. code-block::
 
-    $ lizzy traffic -c config.yaml my_app 1.0 95
+    $ lizzy traffic my_app 1.0 95
 
 For see more options use `lizzy traffic --help`.
 
@@ -48,20 +48,20 @@ Use the `delete` subcommand to delete stacks:
 
 .. code-block::
 
-    $ lizzy delete -c config.yaml my_app 1.0
+    $ lizzy delete my_app 1.0
 
 For see more options use `lizzy delete --help`.
 
 Configuration
 -------------
-`token-url`, `lizzy-url` can be set on a configuration file:
+Lizzy Client can be configured with environmental variables:
 
-.. code-block::
+* `LIZZY_URL` — location of Lizzy (`https://lizzy.example.com/`)
+* `LIZZY_SCOPES` — should be `uid`
+* `OAUTH2_ACCESS_TOKEN_URL` — Oauth2 Access Token Url
+* `CREDENTIALS_DIR` — berry credentials folder, using the Zalando Stups' infrastructure, and by default
+  `/meta/credentials`
 
-      lizzy-url: https://lizzyserver.example/
-      token-url: https://token.url.example/access_token
-
-Note that this two values must be set either on the configuration file or as a command line argument.
 
 Authentication
 --------------

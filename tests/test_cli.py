@@ -4,11 +4,13 @@ import requests
 from click.testing import CliRunner
 from unittest.mock import MagicMock
 from tokens import InvalidCredentialsError
-
 from lizzy_client.cli import main, fetch_token
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
+
+FAKE_ENV = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com',
+            'LIZZY_URL': 'lizzy.example.com'}
 
 
 class FakeLizzy:
@@ -54,34 +56,15 @@ def mock_fake_lizzy(monkeypatch):
     return FakeLizzy
 
 
-def test_not_enough_parameters(monkeypatch):
-    mock_lizzy = MagicMock()
-    monkeypatch.setattr('lizzy_client.cli.Lizzy', mock_lizzy)
-
-    runner = CliRunner()
-
-    result = runner.invoke(main, ['create', '-c', 'none', 'definition', 'version'])
-    assert 'Error: Missing option' in result.output
-
-    result = runner.invoke(main, ['delete', '-c', 'none', 'lizzy_test', 'version'])
-    assert 'Error: Missing option' in result.output
-
-    result = runner.invoke(main, ['traffic', '-c', 'none', 'lizzy_test', 'version', '100'])
-    assert 'Error: Missing option' in result.output
-
-    result = runner.invoke(main, ['delete'])
-    assert 'Error: Missing argument' in result.output
-
-
 def test_fetch_token(mock_get_token):
-    token = fetch_token('https://example.com', ['scope'])
+    token = fetch_token('https://example.com', ['scope'], credentials_dir='/meta/credentials')
 
     assert token == '4CC3557OCC3N'
 
     mock_get_token.side_effect = InvalidCredentialsError('Error')
 
     with pytest.raises(SystemExit) as exc_info:  # type: py.code.ExceptionInfo
-        fetch_token('https://example.com', ['scope'])
+        fetch_token('https://example.com', ['scope'], credentials_dir='/meta/credentials')
 
     exception = exc_info.value
     assert repr(exception) == 'SystemExit(1,)'
@@ -89,14 +72,14 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
-    result = runner.invoke(main, ['create', '-c', config_path, config_path, '1.0'])
+    result = runner.invoke(main, ['create', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
     assert 'Stack ID: 57ACC1D' in result.output
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
 
-    result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
+    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
     assert 'Stack ID: 57ACC1D' in result.output
@@ -106,30 +89,30 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Deployment Successful' in result.output
 
     FakeLizzy.final_state = 'CF:ROLLBACK_COMPLETE'
-    result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
+    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Stack was rollback after deployment. Check you application log for possible reasons.' in result.output
 
     FakeLizzy.final_state = 'LIZZY:REMOVED'
-    result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
+    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Stack was removed before deployment finished.' in result.output
 
     FakeLizzy.final_state = 'CF:CREATE_FAILED'
-    result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
+    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Deployment failed: CF:CREATE_FAILED.' in result.output
 
     FakeLizzy.reset()
     FakeLizzy.raise_exception = True
-    result = runner.invoke(main, ['create', '-c', config_path, '-v', config_path, '1.0'])
+    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Deployment failed: 404 Not Found.' in result.output
 
 
 def test_delete(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
-    result = runner.invoke(main, ['delete', '-c', config_path, 'lizzy-test', '1.0'])
+    result = runner.invoke(main, ['delete', 'lizzy-test', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting stack deletion.. OK' in result.output
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
-    result = runner.invoke(main, ['traffic', '-c', config_path, 'lizzy-test', '1.0', '90'])
+    result = runner.invoke(main, ['traffic', 'lizzy-test', '1.0', '90'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting traffic change.. OK' in result.output

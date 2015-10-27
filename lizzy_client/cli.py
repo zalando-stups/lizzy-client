@@ -1,4 +1,3 @@
-
 """
 Copyright 2015 Zalando SE
 
@@ -18,10 +17,9 @@ import click
 import dateutil.parser
 import requests
 import time
-
 from .lizzy import Lizzy
 from .token import get_token
-from .configuration import ConfigurationError, Parameters
+from .configuration import Configuration
 
 STYLES = {
     'CF:RUNNING': {'fg': 'green'},
@@ -63,18 +61,7 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
                             help='Auto update the screen every X seconds')
 
 
-def common_options(function):
-    default_configuration = '{}/lizzy.yaml'.format(click.get_app_dir('lizzy'))
-
-    function = click.option('--scopes', '-g')(function)
-    function = click.option('--token-url', '-t')(function)
-    function = click.option('--lizzy-url', '-l')(function)
-    function = click.option('--configuration', '-c', default=default_configuration)(function)
-
-    return function
-
-
-def fetch_token(token_url: str, scopes: list) -> str:  # TODO fix scopes to be really a list
+def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
     """
     Common function to fetch token
     :return:
@@ -82,7 +69,7 @@ def fetch_token(token_url: str, scopes: list) -> str:  # TODO fix scopes to be r
 
     with Action('Fetching authentication token..') as action:
         try:
-            access_token = get_token(token_url, scopes)
+            access_token = get_token(token_url, scopes, credentials_dir)
             action.progress()
         except InvalidCredentialsError as e:
             action.fatal_error(e)
@@ -90,31 +77,20 @@ def fetch_token(token_url: str, scopes: list) -> str:  # TODO fix scopes to be r
 
 
 @main.command()
-@click.argument('definition')  # TODO add definition type like senza
-@click.argument('image_version')
-@common_options
 @click.option('--keep-stacks', default=0)
 @click.option('--traffic', default=100)
 @click.option('--verbose', '-v', is_flag=True)
+@click.argument('definition')  # TODO add definition type like senza
+@click.argument('image_version')
 @click.argument('senza_parameters', nargs=-1)
-def create(definition: str,
-           image_version: str,
-           configuration: str,
-           keep_stacks: str,
-           traffic: str,
-           verbose: bool,
-           senza_parameters: list,
-           **kwargs):
+def create(definition: str, image_version: str, keep_stacks: str, traffic: str, verbose: bool, senza_parameters: list):
     senza_parameters = senza_parameters or []
-    try:
-        parameters = Parameters(configuration, **kwargs)
-        parameters.validate()
-    except ConfigurationError as e:
-        fatal_error(e.message)
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes)
+    config = Configuration()
 
-    lizzy = Lizzy(parameters.lizzy_url, access_token)
+    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
+
+    lizzy = Lizzy(config.lizzy_url, access_token)
 
     with Action('Requesting new stack..') as action:
         try:
@@ -148,27 +124,17 @@ def create(definition: str,
 
 @main.command('list')
 @click.argument('stack_ref', nargs=-1)
-@common_options
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
 @watch_option
 @output_option
-def list_stacks(configuration: str,
-                stack_ref: str,
-                all: bool,
-                watch: int,
-                output: str,
-                **kwargs):
+def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
     """List Lizzy stacks"""
 
-    try:
-        parameters = Parameters(configuration, **kwargs)
-        parameters.validate()
-    except ConfigurationError as e:
-        fatal_error(e.message)
+    config = Configuration()
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes)
+    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(parameters.lizzy_url, access_token)
+    lizzy = Lizzy(config.lizzy_url, access_token)
 
     repeat = True
 
@@ -211,21 +177,12 @@ def list_stacks(configuration: str,
 @click.argument('stack_name')
 @click.argument('stack_version')
 @click.argument('percentage', type=FloatRange(0, 100, clamp=True))
-@common_options
-def traffic(stack_name: str,
-            stack_version: str,
-            percentage: int,
-            configuration: str,
-            **kwargs):
-    try:
-        parameters = Parameters(configuration, **kwargs)
-        parameters.validate()
-    except ConfigurationError as e:
-        fatal_error(e.message)
+def traffic(stack_name: str, stack_version: str, percentage: int):
+    config = Configuration()
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes)
+    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(parameters.lizzy_url, access_token)
+    lizzy = Lizzy(config.lizzy_url, access_token)
 
     with Action('Requesting traffic change..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
@@ -235,20 +192,12 @@ def traffic(stack_name: str,
 @main.command()
 @click.argument('stack_name')
 @click.argument('stack_version')
-@common_options
-def delete(stack_name: str,
-           stack_version: str,
-           configuration: str,
-           **kwargs):
-    try:
-        parameters = Parameters(configuration, **kwargs)
-        parameters.validate()
-    except ConfigurationError as e:
-        fatal_error(e.message)
+def delete(stack_name: str, stack_version: str):
+    config = Configuration()
 
-    access_token = fetch_token(parameters.token_url, parameters.scopes)
+    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(parameters.lizzy_url, access_token)
+    lizzy = Lizzy(config.lizzy_url, access_token)
 
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
