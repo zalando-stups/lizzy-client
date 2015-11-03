@@ -14,10 +14,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
-import datetime
 import sys
 
-version = "0.1.{:%Y%m%d%H%M}".format(datetime.datetime.now())
+from lizzy_client.version import VERSION
 
 
 class PyTest(TestCommand):
@@ -41,7 +40,7 @@ class PyTest(TestCommand):
 setup(
     name='lizzy-client',
     packages=find_packages(),
-    version=version,
+    version=VERSION,
     description='Lizzy-client',
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',

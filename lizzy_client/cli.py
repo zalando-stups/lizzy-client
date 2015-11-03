@@ -20,6 +20,7 @@ import time
 from .lizzy import Lizzy
 from .token import get_token
 from .configuration import Configuration
+from .version import VERSION
 
 STYLES = {
     'CF:RUNNING': {'fg': 'green'},
@@ -202,3 +203,11 @@ def delete(stack_name: str, stack_version: str):
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
         lizzy.delete(stack_id)
+
+
+@main.command()
+def version():
+    """
+    Prints Lizzy Client's version
+    """
+    print('Lizzy Client', VERSION)

@@ -5,6 +5,7 @@ from click.testing import CliRunner
 from unittest.mock import MagicMock
 from tokens import InvalidCredentialsError
 from lizzy_client.cli import main, fetch_token
+from lizzy_client.version import VERSION, MAJOR_VERSION, MINOR_VERSION, REVISION
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
@@ -116,3 +117,10 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
     result = runner.invoke(main, ['traffic', 'lizzy-test', '1.0', '90'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting traffic change.. OK' in result.output
+
+
+def test_version():
+    runner = CliRunner()
+    result = runner.invoke(main, ['version'], env=FAKE_ENV, catch_exceptions=False)
+    for version_segment in (VERSION, MAJOR_VERSION, MINOR_VERSION, REVISION):
+        assert str(version_segment) in result.output
