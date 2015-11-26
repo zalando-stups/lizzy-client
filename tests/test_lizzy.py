@@ -15,6 +15,7 @@ class FakeResponse(Response):
         self.status_code = status_code
         self._content = text
         self.raise_for_status = MagicMock()
+        self.headers = {}
 
     def json(self):
         return json.loads(self.content)
