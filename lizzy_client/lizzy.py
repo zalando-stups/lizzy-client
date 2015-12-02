@@ -105,7 +105,12 @@ class Lizzy:
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
-        request.raise_for_status()
+        try:
+            request.raise_for_status()
+        except requests.RequestException:
+            warning('Data Json:')
+            print(json.dumps(data, indent=4))
+            raise
 
     def wait_for_deployment(self, stack_id: str) -> [str]:
         retries = 3
