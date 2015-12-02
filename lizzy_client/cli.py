@@ -11,7 +11,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-from clickclick import Action, FloatRange, OutputFormat, print_table, info, fatal_error
+from clickclick import Action, OutputFormat, print_table, info, fatal_error
 from tokens import InvalidCredentialsError
 import click
 import dateutil.parser
@@ -177,7 +177,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
 @main.command()
 @click.argument('stack_name')
 @click.argument('stack_version')
-@click.argument('percentage', type=FloatRange(0, 100, clamp=True))
+@click.argument('percentage', type=click.IntRange(0, 100, clamp=True))
 def traffic(stack_name: str, stack_version: str, percentage: int):
     config = Configuration()
 
