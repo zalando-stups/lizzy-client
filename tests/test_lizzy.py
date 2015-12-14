@@ -28,8 +28,8 @@ def test_make_header():
 
 
 def test_properties():
-    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    assert lizzy.stacks_url == 'https://lizzy.example/stacks'
+    assert str(Lizzy('https://lizzy.example', '7E5770K3N').stacks_url) == 'https://lizzy.example/stacks'
+    assert str(Lizzy('https://lizzy-2.example', '7E5770K3N').stacks_url) == 'https://lizzy-2.example/stacks'
 
 
 def test_delete(monkeypatch):
@@ -52,7 +52,7 @@ def test_get_stack(monkeypatch):
     stack = lizzy.get_stack('574CC')
 
     header = make_header('7E5770K3N')
-    mock_get.assert_called_once_with('https://lizzy.example/stacks/574CC', headers=header, verify=False)
+    mock_get.assert_called_once_with('https://lizzy.example/stacks/574CC', None, headers=header, verify=False)
 
     assert stack['stack'] == 'fake'
 
@@ -66,7 +66,7 @@ def test_get_stacks(monkeypatch):
     stacks = lizzy.get_stacks()
 
     header = make_header('7E5770K3N')
-    mock_get.assert_called_once_with('https://lizzy.example/stacks', headers=header, verify=False)
+    mock_get.assert_called_once_with('https://lizzy.example/stacks', None, headers=header, verify=False)
 
     assert stacks == ["stack1", "stack2"]
 

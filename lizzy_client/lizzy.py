@@ -12,6 +12,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 """
 
 from clickclick import warning
+from urlpath import URL
 import json
 import requests
 import time
@@ -39,27 +40,27 @@ def make_header(access_token: str):
 
 class Lizzy:
     def __init__(self, base_url: str, access_token: str):
-        self.base_url = base_url
+        self.base_url = URL(base_url)
         self.access_token = access_token
 
     @property
-    def stacks_url(self):
-        return "{base_url}/stacks".format(base_url=self.base_url)
+    def stacks_url(self) -> URL:
+        return self.base_url / 'stacks'
 
     def delete(self, stack_id: str):
-        url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
+        url = self.stacks_url / stack_id
 
         header = make_header(self.access_token)
-        request = requests.delete(url, headers=header, verify=False)
+        request = url.delete(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
         request.raise_for_status()
 
-    def get_stack(self, stack_id) -> dict:
+    def get_stack(self, stack_id: str) -> dict:
         header = make_header(self.access_token)
-        url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
-        request = requests.get(url, headers=header, verify=False)
+        url = self.stacks_url / stack_id
+        request = url.get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
@@ -68,8 +69,7 @@ class Lizzy:
 
     def get_stacks(self) -> list:
         header = make_header(self.access_token)
-        url = "{base_url}/stacks".format(base_url=self.base_url)
-        request = requests.get(url, headers=header, verify=False)
+        request = self.stacks_url.get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
@@ -88,7 +88,7 @@ class Lizzy:
                 'parameters:': parameters,
                 'senza_yaml': senza_yaml}
 
-        request = requests.post(self.stacks_url, data=json.dumps(data), headers=header, verify=False)
+        request = self.stacks_url.post(data=json.dumps(data), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
@@ -97,11 +97,11 @@ class Lizzy:
         return stack_info['stack_id']
 
     def traffic(self, stack_id: str, percentage: int):
-        url = "{base_url}/stacks/{stack_id}".format(base_url=self.base_url, stack_id=stack_id)
+        url = self.stacks_url / stack_id
         data = {"new_traffic": percentage}
 
         header = make_header(self.access_token)
-        request = requests.patch(url, data=json.dumps(data), headers=header, verify=False)
+        request = url.patch(data=json.dumps(data), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
