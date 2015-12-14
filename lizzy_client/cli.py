@@ -13,6 +13,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 from clickclick import Action, OutputFormat, print_table, info, fatal_error
 from tokens import InvalidCredentialsError
+from typing import Optional
 import click
 import dateutil.parser
 import requests
@@ -79,12 +80,14 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 
 @main.command()
 @click.option('--keep-stacks', default=0)
-@click.option('--traffic', default=100)
+@click.option('--traffic', default=100, type=click.IntRange(0, 100, clamp=True))
 @click.option('--verbose', '-v', is_flag=True)
+@click.option('--app-version', '-a')
 @click.argument('definition')  # TODO add definition type like senza
 @click.argument('image_version')
 @click.argument('senza_parameters', nargs=-1)
-def create(definition: str, image_version: str, keep_stacks: str, traffic: str, verbose: bool, senza_parameters: list):
+def create(definition: str, image_version: str, keep_stacks: str, traffic: int, verbose: bool, senza_parameters: list,
+           app_version: Optional[str]):
     senza_parameters = senza_parameters or []
 
     config = Configuration()
@@ -95,7 +98,8 @@ def create(definition: str, image_version: str, keep_stacks: str, traffic: str, 
 
     with Action('Requesting new stack..') as action:
         try:
-            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition, senza_parameters)
+            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition, app_version,
+                                       senza_parameters)
         except requests.RequestException as e:
             action.fatal_error('Deployment failed: {}.'.format(e))
 

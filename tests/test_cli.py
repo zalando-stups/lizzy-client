@@ -29,7 +29,8 @@ class FakeLizzy:
     def delete(self, stack_id):
         ...
 
-    def new_stack(self, image_version, keep_stacks, traffic, definition, parameters):
+    def new_stack(self, image_version, keep_stacks, traffic, definition, app_version, parameters):
+        assert isinstance(traffic, int)
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:

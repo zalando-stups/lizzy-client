@@ -87,20 +87,41 @@ def test_traffic(monkeypatch):
 def test_new_stack(monkeypatch):
     test_dir = os.path.dirname(__file__)
     yaml_path = os.path.join(test_dir, 'test_config.yaml')  # we can use any file for this test
+    with open(yaml_path) as yaml_file:
+        senza_yaml = yaml_file.read()
 
     mock_post = MagicMock()
     mock_post.return_value = FakeResponse(200, '{"stack_id":"574CC1D"}')
     monkeypatch.setattr('requests.post', mock_post)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack_id = lizzy.new_stack('10', 2, 42, yaml_path, [])
+    stack_id = lizzy.new_stack('10', 2, 42, yaml_path, None, [])
 
     header = make_header('7E5770K3N')
-    mock_args, mock_kwargs = mock_post.call_args
-    assert mock_args == ('https://lizzy.example/stacks',)
-    assert mock_kwargs['headers'] == header
+    data = {'image_version': "10",
+            'keep_stacks': 2,
+            'new_traffic': 42,
+            'parameters:': [],
+            'senza_yaml': senza_yaml}
+    mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
+                                      data=json.dumps(data),
+                                      json=None,
+                                      verify=False)
 
     assert stack_id == "574CC1D"
+
+    mock_post.reset_mock()
+    data_with_ver = {'image_version': "10",
+                     'keep_stacks': 2,
+                     'new_traffic': 42,
+                     'parameters:': [],
+                     'senza_yaml': senza_yaml,
+                     "application_version": "420", }
+    lizzy.new_stack('10', 2, 42, yaml_path, "420", [])
+    mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
+                                      data=json.dumps(data_with_ver),
+                                      json=None,
+                                      verify=False)
 
 
 def test_wait_for_deployment(monkeypatch):
