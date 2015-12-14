@@ -123,6 +123,19 @@ def test_new_stack(monkeypatch):
                                       json=None,
                                       verify=False)
 
+    mock_post.reset_mock()
+    data_with_params = {'image_version': "10",
+                        'keep_stacks': 2,
+                        'new_traffic': 42,
+                        'parameters:': ['abc', 'def'],
+                        'senza_yaml': senza_yaml,
+                        "application_version": "420", }
+    lizzy.new_stack('10', 2, 42, yaml_path, "420", ['abc', 'def'])
+    mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
+                                      data=json.dumps(data_with_params),
+                                      json=None,
+                                      verify=False)
+
 
 def test_wait_for_deployment(monkeypatch):
     monkeypatch.setattr('time.sleep', MagicMock())
