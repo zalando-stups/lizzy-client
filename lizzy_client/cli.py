@@ -124,7 +124,7 @@ def create(definition: str, image_version: str, keep_stacks: str, traffic: int, 
         elif last_state == 'LIZZY:REMOVED':
             fatal_error('Stack was removed before deployment finished.')
         elif last_state != 'CF:CREATE_COMPLETE':
-            fatal_error('Deployment failed: {}.'.format(last_state))
+            fatal_error('Deployment failed: {}'.format(last_state))
 
     info('Deployment Successful')
 
@@ -173,7 +173,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
             print_table('stack_name version image_version status creation_time'.split(),
                         rows, styles=STYLES, titles=TITLES)
 
-        if watch:
+        if watch:  # pragma: no cover
             time.sleep(watch)
             click.clear()
         else:
