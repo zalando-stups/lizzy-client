@@ -101,7 +101,7 @@ def test_new_stack(monkeypatch):
     data = {'image_version': "10",
             'keep_stacks': 2,
             'new_traffic': 42,
-            'parameters:': [],
+            'parameters': [],
             'senza_yaml': senza_yaml}
     mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
                                       data=json.dumps(data),
@@ -114,7 +114,7 @@ def test_new_stack(monkeypatch):
     data_with_ver = {'image_version': "10",
                      'keep_stacks': 2,
                      'new_traffic': 42,
-                     'parameters:': [],
+                     'parameters': [],
                      'senza_yaml': senza_yaml,
                      "application_version": "420", }
     lizzy.new_stack('10', 2, 42, yaml_path, "420", [])
@@ -127,7 +127,7 @@ def test_new_stack(monkeypatch):
     data_with_params = {'image_version': "10",
                         'keep_stacks': 2,
                         'new_traffic': 42,
-                        'parameters:': ['abc', 'def'],
+                        'parameters': ['abc', 'def'],
                         'senza_yaml': senza_yaml,
                         "application_version": "420", }
     lizzy.new_stack('10', 2, 42, yaml_path, "420", ['abc', 'def'])

@@ -87,7 +87,7 @@ class Lizzy:
         data = {'image_version': image_version,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
-                'parameters:': parameters,
+                'parameters': parameters,
                 'senza_yaml': senza_yaml}
 
         if application_version:
