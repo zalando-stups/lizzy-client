@@ -77,14 +77,15 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
-    def new_stack(self, image_version: str, keep_stacks: str, new_traffic: int, senza_yaml_path: str,
-                  application_version: Optional[str], parameters: List[str]) -> str:
+    def new_stack(self, image_version: str, keep_stacks: int, new_traffic: int, senza_yaml_path: str,
+                  application_version: Optional[str], disable_rollback: bool, parameters: List[str]) -> str:
         header = make_header(self.access_token)
 
         with open(senza_yaml_path) as senza_yaml_file:
             senza_yaml = senza_yaml_file.read()
 
         data = {'image_version': image_version,
+                'disable_rollback': disable_rollback,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'parameters': parameters,
