@@ -111,7 +111,7 @@ def test_new_stack(monkeypatch):
             'disable_rollback': True,
             'senza_yaml': senza_yaml}
     mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
-                                      data=json.dumps(data),
+                                      data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
 
@@ -133,7 +133,7 @@ def test_new_stack(monkeypatch):
             'disable_rollback': False,
             'senza_yaml': senza_yaml}
     mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
-                                      data=json.dumps(data),
+                                      data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
 
@@ -149,7 +149,7 @@ def test_new_stack(monkeypatch):
                      "application_version": "420", }
     lizzy.new_stack('10', 2, 42, yaml_path, "420", False, [])
     mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
-                                      data=json.dumps(data_with_ver),
+                                      data=json.dumps(data_with_ver,  sort_keys=True),
                                       json=None,
                                       verify=False)
 
@@ -163,7 +163,7 @@ def test_new_stack(monkeypatch):
                         "application_version": "420", }
     lizzy.new_stack('10', 2, 42, yaml_path, "420", True, ['abc', 'def'])
     mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
-                                      data=json.dumps(data_with_params),
+                                      data=json.dumps(data_with_params, sort_keys=True),
                                       json=None,
                                       verify=False)
 

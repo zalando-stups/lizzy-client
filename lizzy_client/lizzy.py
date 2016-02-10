@@ -94,7 +94,7 @@ class Lizzy:
         if application_version:
             data['application_version'] = application_version
 
-        request = self.stacks_url.post(data=json.dumps(data), headers=header, verify=False)
+        request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != TARGET_VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
