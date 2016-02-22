@@ -85,12 +85,16 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--app-version', '-a',
               help='Application version, if provided will be used as the stack version and to register it in Kio.')
+@click.option('--stack-version', '-s',
+              help='Stack version, if provided will be used as the stack version.')
 @click.option('--disable-rollback', is_flag=True, help='Disable Cloud Formation rollback on failure')
 @click.argument('definition')  # TODO add definition type like senza
 @click.argument('image_version')
 @click.argument('senza_parameters', nargs=-1)
-def create(definition: str, image_version: str, keep_stacks: int, traffic: int, verbose: bool, senza_parameters: list,
-           app_version: Optional[str], disable_rollback: bool):
+def create(definition: str, image_version: str, keep_stacks: int,
+           traffic: int, verbose: bool, senza_parameters: list,
+           app_version: Optional[str], stack_version: Optional[str],
+           disable_rollback: bool):
     senza_parameters = senza_parameters or []
 
     config = Configuration()
@@ -101,8 +105,9 @@ def create(definition: str, image_version: str, keep_stacks: int, traffic: int, 
 
     with Action('Requesting new stack..') as action:
         try:
-            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic, definition, app_version, disable_rollback,
-                                       senza_parameters)
+            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic,
+                                       definition, stack_version, app_version,
+                                       disable_rollback, senza_parameters)
         except requests.RequestException as e:
             action.fatal_error('Deployment failed: {}.'.format(e))
 
