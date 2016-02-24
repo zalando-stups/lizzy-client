@@ -29,7 +29,7 @@ FINAL_STATES = ["CF:CREATE_COMPLETE",
                 "LIZZY:ERROR",
                 "LIZZY:REMOVED"]
 
-TARGET_VERSION = '2016-02-09'
+TARGET_VERSION = '2016-02-22'
 
 
 def make_header(access_token: str):
@@ -77,8 +77,18 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
-    def new_stack(self, image_version: str, keep_stacks: int, new_traffic: int, senza_yaml_path: str,
-                  application_version: Optional[str], disable_rollback: bool, parameters: List[str]) -> str:
+    def new_stack(self,
+                  image_version: str,
+                  keep_stacks: int,
+                  new_traffic: int,
+                  senza_yaml_path: str,
+                  stack_version: Optional[str],
+                  application_version: Optional[str],
+                  disable_rollback: bool,
+                  parameters: List[str]) -> str:
+        """
+        Requests a new stack.
+        """
         header = make_header(self.access_token)
 
         with open(senza_yaml_path) as senza_yaml_file:
@@ -93,6 +103,9 @@ class Lizzy:
 
         if application_version:
             data['application_version'] = application_version
+
+        if stack_version:
+            data['stack_version'] = stack_version
 
         request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')

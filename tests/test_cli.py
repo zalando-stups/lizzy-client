@@ -3,12 +3,11 @@ import os.path
 import requests
 import json
 from click.testing import CliRunner
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 from tokens import InvalidCredentialsError
 
 from lizzy_client.cli import main, fetch_token
-from lizzy_client.version import VERSION, MAJOR_VERSION, MINOR_VERSION, REVISION
+from lizzy_client.version import VERSION, MAJOR_VERSION, MINOR_VERSION
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
@@ -32,7 +31,8 @@ class FakeLizzy:
     def delete(self, stack_id):
         ...
 
-    def new_stack(self, image_version, keep_stacks, traffic, definition, app_version, disable_rollback, parameters):
+    def new_stack(self, image_version, keep_stacks, traffic, definition,
+                  stack_version, app_version, disable_rollback, parameters):
         assert isinstance(traffic, int)
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
@@ -149,7 +149,7 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
 def test_version():
     runner = CliRunner()
     result = runner.invoke(main, ['version'], env=FAKE_ENV, catch_exceptions=False)
-    for version_segment in (VERSION, MAJOR_VERSION, MINOR_VERSION, REVISION):
+    for version_segment in (VERSION, MAJOR_VERSION, MINOR_VERSION):
         assert str(version_segment) in result.output
 
 

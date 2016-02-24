@@ -14,7 +14,8 @@ Script to deploy Senza_ definitions using a Lizzy_ server.
 Create a new stack
 ------------------
 
-Use the `create` subcommand to create stacks. The syntax is `lizzy create [OPTIONS] DEFINITION IMAGE_VERSION`:
+Use the `create` subcommand to create stacks. The syntax is
+`lizzy create [OPTIONS] DEFINITION IMAGE_VERSION`:
 
 .. code-block::
 
