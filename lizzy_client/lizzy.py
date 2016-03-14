@@ -29,7 +29,7 @@ FINAL_STATES = ["CF:CREATE_COMPLETE",
                 "LIZZY:ERROR",
                 "LIZZY:REMOVED"]
 
-TARGET_VERSION = '2016-02-22'
+TARGET_VERSION = '1.4'
 
 
 def make_header(access_token: str):
