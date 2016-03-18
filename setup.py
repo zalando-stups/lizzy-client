@@ -18,6 +18,23 @@ import sys
 
 from lizzy_client.version import VERSION
 
+requirements = [
+    'click==6.3',
+    'clickclick==0.15',
+    'requests==2.9.1',
+    'pyyaml==3.11',
+    'python-dateutil==2.5.0',
+    'stups-tokens==1.0.17',
+    'environmental==1.0',
+    'urlpath==1.1.2',
+    'typing==3.5.0.1'
+]
+
+test_requirements = [
+    'pytest-cov==2.2.1',
+    'pytest==2.9.0'
+]
+
 
 class PyTest(TestCommand):
     def initialize_options(self):
@@ -45,9 +62,8 @@ setup(
     author='Zalando SE',
     url='https://github.com/zalando/lizzy-client',
     license='Apache License Version 2.0',
-    install_requires=['click', 'clickclick>=0.10', 'requests', 'pyyaml', 'python-dateutil', 'stups-tokens',
-                      'environmental', 'urlpath'],
-    tests_require=['pytest-cov', 'pytest'],
+    install_requires=requirements,
+    tests_require=test_requirements,
     cmdclass={'test': PyTest},
     classifiers=[
         'Programming Language :: Python',
