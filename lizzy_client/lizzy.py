@@ -14,6 +14,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 from typing import Optional, List
 from clickclick import warning
 from urlpath import URL
+from .version import VERSION
 import json
 import requests
 import time
@@ -28,8 +29,6 @@ FINAL_STATES = ["CF:CREATE_COMPLETE",
                 "CF:ROLLBACK_IN_PROGRESS",
                 "LIZZY:ERROR",
                 "LIZZY:REMOVED"]
-
-TARGET_VERSION = '1.5'
 
 
 def make_header(access_token: str):
@@ -54,8 +53,8 @@ class Lizzy:
         header = make_header(self.access_token)
         request = url.delete(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != TARGET_VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
 
     def get_stack(self, stack_id: str) -> dict:
@@ -63,8 +62,8 @@ class Lizzy:
         url = self.stacks_url / stack_id
         request = url.get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != TARGET_VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return request.json()
 
@@ -72,8 +71,8 @@ class Lizzy:
         header = make_header(self.access_token)
         request = self.stacks_url.get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != TARGET_VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return request.json()
 
@@ -109,8 +108,8 @@ class Lizzy:
 
         request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != TARGET_VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         stack_info = request.json()
         return stack_info['stack_id']
@@ -122,8 +121,8 @@ class Lizzy:
         header = make_header(self.access_token)
         request = url.patch(data=json.dumps(data), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != TARGET_VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(TARGET_VERSION, lizzy_version))
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         try:
             request.raise_for_status()
         except requests.RequestException:
