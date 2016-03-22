@@ -19,7 +19,7 @@ import sys
 from lizzy_client.version import VERSION
 
 requirements = [
-    'click==6.3',
+    'click>=6.3,<7.0',
     'clickclick==0.15',
     'requests==2.9.1',
     'pyyaml==3.11',
