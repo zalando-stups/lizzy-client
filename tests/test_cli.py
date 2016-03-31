@@ -37,7 +37,7 @@ class FakeLizzy:
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:
-            return '57ACC1D'
+            return {'stack_id': '57ACC1D', 'stack_name': 'stack1'}
 
     def traffic(self, stack_id, percentage):
         ...
@@ -106,6 +106,11 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Stack ID: 57ACC1D' in result.output
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
+    assert 'kio version approve' not in result.output
+
+    # with kio version approval
+    result = runner.invoke(main, ['create', config_path, '1.0', '-a', '42'], env=FAKE_ENV, catch_exceptions=False)
+    assert 'kio version approve stack1 42' in result.output
 
     result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output

@@ -105,9 +105,10 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
     with Action('Requesting new stack..') as action:
         try:
-            stack_id = lizzy.new_stack(image_version, keep_stacks, traffic,
-                                       definition, stack_version, app_version,
-                                       disable_rollback, senza_parameters)
+            new_stack = lizzy.new_stack(image_version, keep_stacks, traffic,
+                                        definition, stack_version, app_version,
+                                        disable_rollback, senza_parameters)
+            stack_id = new_stack['stack_id']
         except requests.RequestException as e:
             action.fatal_error('Deployment failed: {}.'.format(e))
 
@@ -133,6 +134,10 @@ def create(definition: str, image_version: str, keep_stacks: int,
             fatal_error('Deployment failed: {}'.format(last_state))
 
     info('Deployment Successful')
+    if app_version:
+        info('You can approve this new version using the command:\n\n\t'
+             '$ kio version approve {app_name} {version}'.format(
+                 app_name=new_stack['stack_name'], version=app_version))
 
 
 @main.command('list')
