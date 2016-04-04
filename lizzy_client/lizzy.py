@@ -111,8 +111,7 @@ class Lizzy:
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
-        stack_info = request.json()
-        return stack_info['stack_id']
+        return request.json()
 
     def traffic(self, stack_id: str, percentage: int):
         url = self.stacks_url / stack_id

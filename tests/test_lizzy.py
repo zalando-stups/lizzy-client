@@ -95,14 +95,15 @@ def test_new_stack(monkeypatch):
     monkeypatch.setattr('requests.post', mock_post)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack_id = lizzy.new_stack(image_version='10',
-                               keep_stacks=2,
-                               new_traffic=42,
-                               senza_yaml_path=yaml_path,
-                               application_version=None,
-                               stack_version=None,
-                               disable_rollback=True,
-                               parameters=[])
+    stack = lizzy.new_stack(image_version='10',
+                            keep_stacks=2,
+                            new_traffic=42,
+                            senza_yaml_path=yaml_path,
+                            application_version=None,
+                            stack_version=None,
+                            disable_rollback=True,
+                            parameters=[])
+    stack_id = stack['stack_id']
 
     header = make_header('7E5770K3N')
     data = {'image_version': "10",
@@ -118,14 +119,15 @@ def test_new_stack(monkeypatch):
 
     mock_post.reset_mock()
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack_id = lizzy.new_stack(image_version='10',
-                               keep_stacks=2,
-                               new_traffic=42,
-                               senza_yaml_path=yaml_path,
-                               application_version=None,
-                               stack_version=None,
-                               disable_rollback=False,
-                               parameters=[])
+    stack = lizzy.new_stack(image_version='10',
+                            keep_stacks=2,
+                            new_traffic=42,
+                            senza_yaml_path=yaml_path,
+                            application_version=None,
+                            stack_version=None,
+                            disable_rollback=False,
+                            parameters=[])
+    stack_id = stack['stack_id']
 
     header = make_header('7E5770K3N')
     data = {'image_version': "10",
