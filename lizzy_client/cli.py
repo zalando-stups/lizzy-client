@@ -109,7 +109,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
             new_stack = lizzy.new_stack(image_version, keep_stacks, traffic,
                                         definition, stack_version, app_version,
                                         disable_rollback, senza_parameters)
-            stack_id = new_stack['stack_id']
+            stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.RequestException as e:
             action.fatal_error('Deployment failed: {}.'.format(e))
 
@@ -176,7 +176,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
             creation_time = dateutil.parser.parse(stack['creation_time'])
             rows.append({'stack_name': stack['stack_name'],
                          'version': stack['stack_version'],
-                         'image_version': stack['image_version'],
+                         'image_version': stack['version'],
                          'status': stack['status'],
                          'creation_time': creation_time.timestamp()})
 

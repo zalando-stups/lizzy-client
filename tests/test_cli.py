@@ -37,7 +37,12 @@ class FakeLizzy:
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:
-            return {'stack_id': '57ACC1D', 'stack_name': 'stack1'}
+            return {'stack_name': 'stack1',
+                    'stack_version': '42',
+                    'description': 'stack1 (ImageVersion: 257)',
+                    'version': 'd42',
+                    'status': 'CF:CREATE_COMPLETE',
+                    'creation_time': '2016-01-01T12:00:00Z'}
 
     def traffic(self, stack_id, percentage):
         ...
@@ -48,19 +53,22 @@ class FakeLizzy:
     def get_stacks(self) -> list:
         stack1 = {'stack_name': 'stack1',
                   'stack_version': '42',
-                  'image_version': 'd42',
+                  "description": "stack1 (ImageVersion: 257)",
+                  'version': 'd42',
                   'status': 'CF:CREATE_COMPLETE',
                   'creation_time': '2016-01-01T12:00:00Z'}
 
         stack2 = {'stack_name': 'stack2',
                   'stack_version': '42',
-                  'image_version': 'd42',
+                  'version': 'd42',
+                  "description": "stack1 (ImageVersion: 257)",
                   'status': 'CF:TEST',
                   'creation_time': '2015-12-01T12:00:00Z'}
 
         stack3 = {'stack_name': 'stack2',
                   'stack_version': '42',
-                  'image_version': 'd42',
+                  'version': 'd42',
+                  "description": "stack1 (ImageVersion: 257)",
                   'status': 'LIZZY:REMOVED',
                   'creation_time': '2015-12-01T12:00:00Z'}
         if self.raise_exception:
@@ -103,7 +111,7 @@ def test_create(mock_get_token, mock_fake_lizzy):
     result = runner.invoke(main, ['create', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
-    assert 'Stack ID: 57ACC1D' in result.output
+    assert 'Stack ID: stack1-d42' in result.output
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
@@ -115,7 +123,7 @@ def test_create(mock_get_token, mock_fake_lizzy):
     result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
-    assert 'Stack ID: 57ACC1D' in result.output
+    assert 'Stack ID: stack1-d42' in result.output
     assert 'Waiting for new stack...\n' in result.output
     assert 'CF:WAITING' in result.output
     assert 'CF:CREATE_COMPLETE' in result.output

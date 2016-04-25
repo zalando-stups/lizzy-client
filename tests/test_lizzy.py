@@ -5,12 +5,18 @@ import os
 
 from lizzy_client.lizzy import make_header, Lizzy
 
+STACK1 = """{"creation_time": 1460635167,
+              "description": "Lizzy Bus (ImageVersion: 257)",
+              "stack_name": "lizzy-bus",
+              "status": "CREATE_COMPLETE",
+              "version": "257"}"""
+
 
 class FakeResponse(Response):
     def __init__(self, status_code, text):
         """
         :type status_code: int
-        :type text: ste
+        :type text: str
         """
         self.status_code = status_code
         self._content = text
@@ -91,7 +97,7 @@ def test_new_stack(monkeypatch):
         senza_yaml = yaml_file.read()
 
     mock_post = MagicMock()
-    mock_post.return_value = FakeResponse(200, '{"stack_id":"574CC1D"}')
+    mock_post.return_value = FakeResponse(200, STACK1)
     monkeypatch.setattr('requests.post', mock_post)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
@@ -103,7 +109,8 @@ def test_new_stack(monkeypatch):
                             stack_version=None,
                             disable_rollback=True,
                             parameters=[])
-    stack_id = stack['stack_id']
+    stack_name = stack['stack_name']
+    assert stack_name == 'lizzy-bus'
 
     header = make_header('7E5770K3N')
     data = {'image_version': "10",
@@ -127,7 +134,6 @@ def test_new_stack(monkeypatch):
                             stack_version=None,
                             disable_rollback=False,
                             parameters=[])
-    stack_id = stack['stack_id']
 
     header = make_header('7E5770K3N')
     data = {'image_version': "10",
@@ -140,8 +146,6 @@ def test_new_stack(monkeypatch):
                                       data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
-
-    assert stack_id == "574CC1D"
 
     mock_post.reset_mock()
     data_with_ver = {'image_version': "10",
