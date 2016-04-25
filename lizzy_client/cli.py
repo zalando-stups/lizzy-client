@@ -127,6 +127,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
                 action.progress()
             last_state = state
 
+        # TODO be prepared to handle all final AWS CF states
         if last_state == 'CF:ROLLBACK_COMPLETE':
             fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
         elif last_state == 'LIZZY:REMOVED':
@@ -135,6 +136,14 @@ def create(definition: str, image_version: str, keep_stacks: int,
             fatal_error('Deployment failed: {}'.format(last_state))
 
     info('Deployment Successful')
+
+    if traffic is not None:
+        with Action('Requesting traffic change..'):
+            stack_id = '{stack_name}-{stack_version}'.format_map(locals())
+            lizzy.traffic(stack_id, traffic)
+
+    # TODO delete old stacks
+
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
              '$ kio version approve {app_name} {version}'.format(
