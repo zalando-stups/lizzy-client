@@ -20,19 +20,19 @@ from lizzy_client.version import VERSION
 
 requirements = [
     'click>=6.3,<7.0',
-    'clickclick==0.15',
-    'requests==2.9.1',
-    'pyyaml==3.11',
-    'python-dateutil==2.5.0',
-    'stups-tokens==1.0.17',
-    'environmental==1.0',
-    'urlpath==1.1.2',
-    'typing==3.5.0.1'
+    'clickclick>=0.15',
+    'requests>=2.9.1',
+    'pyyaml>=3.11',
+    'python-dateutil>=2.5.0',
+    'stups-tokens>=1.0.17',
+    'environmental>=1.0',
+    'urlpath>=1.1.2',
+    'typing>=3.5.0.1'
 ]
 
 test_requirements = [
-    'pytest-cov==2.2.1',
-    'pytest==2.9.0'
+    'pytest-cov>=2.2.1',
+    'pytest>=2.9.0'
 ]
 
 
