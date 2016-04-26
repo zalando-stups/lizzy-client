@@ -54,14 +54,20 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
-    def get_stacks(self) -> list:
+    def get_stacks(self, stack_reference: Optional[List[str]]=None) -> list:
         header = make_header(self.access_token)
         request = self.stacks_url.get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
-        return request.json()
+        stacks = request.json()
+        # TODO implement this and all in the server side
+        if stack_reference:
+            stacks = [stack
+                      for stack in stacks
+                      if stack['stack_name'] in stack_reference]
+        return stacks
 
     def new_stack(self,
                   image_version: str,

@@ -13,7 +13,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup
 from tokens import InvalidCredentialsError
-from typing import Optional
+from typing import Optional, List
 import click
 import dateutil.parser
 import requests
@@ -145,7 +145,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
     # TODO error handling
     # TODO unit test this
     versions_to_keep = keep_stacks + 1
-    all_stacks = lizzy.get_stacks()
+    all_stacks = lizzy.get_stacks([new_stack['stack_name']])
     sorted_stacks = sorted(all_stacks,
                            key=lambda stack: stack['creation_time'])
     stacks_to_remove = sorted_stacks[:-versions_to_keep]
@@ -167,7 +167,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
 @watch_option
 @output_option
-def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
+def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
     """List Lizzy stacks"""
 
     config = Configuration()
@@ -179,14 +179,9 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
     while True:
         # TODO reimplement all later
         try:
-            stacks = lizzy.get_stacks()
+            stacks = lizzy.get_stacks(stack_ref)
         except requests.RequestException as e:
             fatal_error('Failed to get stacks: {}'.format(e))
-
-        if stack_ref:
-            stacks = [stack
-                      for stack in stacks
-                      if stack['stack_name'] in stack_ref]
 
         rows = []
         for stack in stacks:

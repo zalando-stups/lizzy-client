@@ -48,7 +48,7 @@ class FakeLizzy:
     def wait_for_deployment(self, stack_id: str) -> [str]:
         return ['CF:WAITING', self.final_state]
 
-    def get_stacks(self) -> list:
+    def get_stacks(self, stack_reference=None) -> list:
         stack1 = {'stack_name': 'stack1',
                   "description": "stack1 (ImageVersion: 257)",
                   'version': 's1',
@@ -72,10 +72,18 @@ class FakeLizzy:
                   "description": "stack1 (ImageVersion: 257)",
                   'status': 'CF:CREATE_COMPLETE',
                   'creation_time': '2016-01-01T10:00:00Z'}
+
+        stacks = [stack1, stack2, stack3, stack4]
+
+        if stack_reference:
+            stacks = [stack
+                      for stack in stacks
+                      if stack['stack_name'] in stack_reference]
+
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:
-            return [stack1, stack2, stack3, stack4]
+            return stacks
 
 
 @pytest.fixture
@@ -117,7 +125,9 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
-    # assert FakeLizzy.delete.call_args_list == 123
+    assert FakeLizzy.delete.call_count == 2
+    FakeLizzy.delete.assert_any_call('stack1-s7')
+    FakeLizzy.delete.assert_any_call('stack1-s42')
     FakeLizzy.reset()
 
     # with explicit traffic
