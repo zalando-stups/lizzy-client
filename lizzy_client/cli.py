@@ -11,7 +11,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
  language governing permissions and limitations under the License.
 """
 
-from clickclick import Action, OutputFormat, print_table, info, fatal_error
+from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup
 from tokens import InvalidCredentialsError
 from typing import Optional
 import click
@@ -56,7 +56,7 @@ TITLES = {
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
-main = click.Group()
+main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
 output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
                              help='Use alternative output format')
 watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
@@ -95,6 +95,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
            traffic: int, verbose: bool, senza_parameters: list,
            app_version: Optional[str], stack_version: Optional[str],
            disable_rollback: bool):
+    '''Deploy a new Cloud Formation stack'''
     senza_parameters = senza_parameters or []
 
     config = Configuration()
@@ -196,6 +197,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
 @click.argument('stack_version')
 @click.argument('percentage', type=click.IntRange(0, 100, clamp=True))
 def traffic(stack_name: str, stack_version: str, percentage: int):
+    '''Switch traffic'''
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
@@ -211,6 +213,7 @@ def traffic(stack_name: str, stack_version: str, percentage: int):
 @click.argument('stack_name')
 @click.argument('stack_version')
 def delete(stack_name: str, stack_version: str):
+    '''Delete a single stack'''
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
