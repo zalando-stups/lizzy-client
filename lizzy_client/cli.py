@@ -154,7 +154,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
         for old_stack in stacks_to_remove:
             old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
             click.echo(' {}'.format(old_stack_id))
-            lizzy.delete(stack_id)
+            lizzy.delete(old_stack_id)
 
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
@@ -177,31 +177,29 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
     lizzy = Lizzy(config.lizzy_url, access_token)
 
     while True:
+        # TODO reimplement all later
         try:
-            all_stacks = lizzy.get_stacks()
+            stacks = lizzy.get_stacks()
         except requests.RequestException as e:
             fatal_error('Failed to get stacks: {}'.format(e))
 
-        if all:
-            stacks = all_stacks
-        else:
-            stacks = [stack for stack in all_stacks if stack['status'] not in ['LIZZY:REMOVED']]
-
         if stack_ref:
-            stacks = [stack for stack in stacks if stack['stack_name'] in stack_ref]
+            stacks = [stack
+                      for stack in stacks
+                      if stack['stack_name'] in stack_ref]
 
         rows = []
         for stack in stacks:
             creation_time = dateutil.parser.parse(stack['creation_time'])
             rows.append({'stack_name': stack['stack_name'],
-                         'version': stack['stack_version'],
-                         'image_version': stack['version'],
+                         'version': stack['version'],
                          'status': stack['status'],
-                         'creation_time': creation_time.timestamp()})
+                         'creation_time': creation_time.timestamp(),
+                         'description': stack['description']})
 
         rows.sort(key=lambda x: (x['stack_name'], x['version']))
         with OutputFormat(output):
-            print_table('stack_name version image_version status creation_time'.split(),
+            print_table('stack_name version status creation_time description'.split(),
                         rows, styles=STYLES, titles=TITLES)
 
         if watch:  # pragma: no cover

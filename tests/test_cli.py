@@ -20,6 +20,7 @@ class FakeLizzy:
     final_state = 'CF:CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
+    delete = MagicMock()
 
     def __init__(self, base_url: str, access_token: str):
         ...
@@ -28,10 +29,8 @@ class FakeLizzy:
     def reset(cls):
         cls.final_state = 'CF:CREATE_COMPLETE'
         cls.raise_exception = False
+        cls.delete.reset_mock()
         cls.traffic.reset_mock()
-
-    def delete(self, stack_id):
-        ...
 
     def new_stack(self, image_version, keep_stacks, traffic, definition,
                   stack_version, app_version, disable_rollback, parameters):
@@ -51,29 +50,32 @@ class FakeLizzy:
 
     def get_stacks(self) -> list:
         stack1 = {'stack_name': 'stack1',
-                  'stack_version': '42',
                   "description": "stack1 (ImageVersion: 257)",
-                  'version': 'd42',
+                  'version': 's1',
                   'status': 'CF:CREATE_COMPLETE',
                   'creation_time': '2016-01-01T12:00:00Z'}
 
         stack2 = {'stack_name': 'stack2',
-                  'stack_version': '42',
-                  'version': 'd42',
+                  'version': 's2',
                   "description": "stack1 (ImageVersion: 257)",
                   'status': 'CF:TEST',
                   'creation_time': '2015-12-01T12:00:00Z'}
 
-        stack3 = {'stack_name': 'stack2',
-                  'stack_version': '42',
-                  'version': 'd42',
+        stack3 = {'stack_name': 'stack1',
+                  'version': 's42',
                   "description": "stack1 (ImageVersion: 257)",
-                  'status': 'LIZZY:REMOVED',
-                  'creation_time': '2015-12-01T12:00:00Z'}
+                  'status': 'CF:CREATE_COMPLETE',
+                  'creation_time': '2015-12-01T15:00:00Z'}
+
+        stack4 = {'stack_name': 'stack1',
+                  'version': 's7',
+                  "description": "stack1 (ImageVersion: 257)",
+                  'status': 'CF:CREATE_COMPLETE',
+                  'creation_time': '2016-01-01T10:00:00Z'}
         if self.raise_exception:
             raise requests.HTTPError('404 Not Found')
         else:
-            return [stack1, stack2, stack3]
+            return [stack1, stack2, stack3, stack4]
 
 
 @pytest.fixture
@@ -115,6 +117,7 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
+    # assert FakeLizzy.delete.call_args_list == 123
     FakeLizzy.reset()
 
     # with explicit traffic
@@ -175,41 +178,42 @@ def test_version():
 
 def test_list(mock_get_token, mock_fake_lizzy):
     stack1 = {'stack_name': 'stack1',
-              'version': '42',
-              'image_version': 'd42',
+              "description": "stack1 (ImageVersion: 257)",
+              'version': 's1',
               'status': 'CF:CREATE_COMPLETE',
               'creation_time': 1451649600.0}
 
     stack2 = {'stack_name': 'stack2',
-              'version': '42',
-              'image_version': 'd42',
+              'version': 's2',
+              "description": "stack1 (ImageVersion: 257)",
               'status': 'CF:TEST',
               'creation_time': 1448971200.0}
 
-    stack3 = {'stack_name': 'stack2',
-              'version': '42',
-              'image_version': 'd42',
-              'status': 'LIZZY:REMOVED',
-              'creation_time': 1448971200.0}
+    stack3 = {'stack_name': 'stack1',
+              'version': 's42',
+              "description": "stack1 (ImageVersion: 257)",
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': 1448982000.0}
+
+    stack4 = {'stack_name': 'stack1',
+              "description": "stack1 (ImageVersion: 257)",
+              'version': 's7',
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': 1451642400.0}
 
     runner = CliRunner()
     regular_list_result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
     str_json = regular_list_result.output.splitlines()[-1]  # type: str
     regular_list = json.loads(str_json)  # type: list
-    assert regular_list == [stack1, stack2]
-
-    runner = CliRunner()
-    all_list_result = runner.invoke(main, ['list', '--all', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
-    str_json = all_list_result.output.splitlines()[-1]  # type: str
-    all_list = json.loads(str_json)  # type: list
-    assert all_list == [stack1, stack2, stack3]
+    for stack in [stack1, stack2, stack3, stack4]:
+        assert stack in regular_list
 
     runner = CliRunner()
     stack1_list_result = runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1'], env=FAKE_ENV,
                                        catch_exceptions=False)
     str_json = stack1_list_result.output.splitlines()[-1]  # type: str
     stack1_list = json.loads(str_json)  # type: list
-    assert stack1_list == [stack1]
+    assert stack1_list == [stack1, stack3, stack4]
 
     FakeLizzy.raise_exception = True
     result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
