@@ -137,15 +137,13 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
     info('Deployment Successful')
 
-    # TODO unit test this
     if traffic is not None:
         with Action('Requesting traffic change..'):
-            stack_id = '{stack_name}-{stack_version}'.format_map(locals())
             # TODO error handling
             lizzy.traffic(stack_id, traffic)
 
-    # TODO delete old stacks
     # TODO error handling
+    # TODO unit test this
     versions_to_keep = keep_stacks + 1
     all_stacks = lizzy.get_stacks()
     sorted_stacks = sorted(all_stacks,
@@ -154,8 +152,8 @@ def create(definition: str, image_version: str, keep_stacks: int,
     with Action('Deleting old stacks..') as action:
         print()
         for old_stack in stacks_to_remove:
-            stack_id = '{stack_name}-{version}'.format_map(old_stack)
-            click.echo(' {}'.format(stack_id))
+            old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
+            click.echo(' {}'.format(old_stack_id))
             lizzy.delete(stack_id)
 
     if app_version:
@@ -178,10 +176,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
 
     lizzy = Lizzy(config.lizzy_url, access_token)
 
-    repeat = True
-
-    # TODO: remove the repeat and use a proper break
-    while repeat:
+    while True:
         try:
             all_stacks = lizzy.get_stacks()
         except requests.RequestException as e:
@@ -213,7 +208,7 @@ def list_stacks(stack_ref: str, all: bool, watch: int, output: str):
             time.sleep(watch)
             click.clear()
         else:
-            repeat = False
+            break
 
 
 @main.command()

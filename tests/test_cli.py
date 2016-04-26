@@ -19,6 +19,7 @@ FAKE_ENV = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com',
 class FakeLizzy:
     final_state = 'CF:CREATE_COMPLETE'
     raise_exception = False
+    traffic = MagicMock()
 
     def __init__(self, base_url: str, access_token: str):
         ...
@@ -27,6 +28,7 @@ class FakeLizzy:
     def reset(cls):
         cls.final_state = 'CF:CREATE_COMPLETE'
         cls.raise_exception = False
+        cls.traffic.reset_mock()
 
     def delete(self, stack_id):
         ...
@@ -43,9 +45,6 @@ class FakeLizzy:
                     'version': 'd42',
                     'status': 'CF:CREATE_COMPLETE',
                     'creation_time': '2016-01-01T12:00:00Z'}
-
-    def traffic(self, stack_id, percentage):
-        ...
 
     def wait_for_deployment(self, stack_id: str) -> [str]:
         return ['CF:WAITING', self.final_state]
@@ -115,6 +114,14 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
+    FakeLizzy.reset()
+
+    # with explicit traffic
+    result = runner.invoke(main, ['create', config_path, '1.0', '--traffic', '42'],
+                           env=FAKE_ENV, catch_exceptions=False)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 42)
+    FakeLizzy.reset()
 
     # with kio version approval
     result = runner.invoke(main, ['create', config_path, '1.0', '-a', '42'], env=FAKE_ENV, catch_exceptions=False)
