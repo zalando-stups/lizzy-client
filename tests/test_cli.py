@@ -5,9 +5,11 @@ import json
 from click.testing import CliRunner
 from unittest.mock import MagicMock
 from tokens import InvalidCredentialsError
+from urlpath import URL
 
 from lizzy_client.cli import main, fetch_token
 from lizzy_client.version import VERSION, MAJOR_VERSION, MINOR_VERSION
+from lizzy_client.lizzy import Lizzy
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
@@ -16,14 +18,30 @@ FAKE_ENV = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com',
             'LIZZY_URL': 'lizzy.example.com'}
 
 
-class FakeLizzy:
+class FakeResponse(requests.Response):
+    def __init__(self, status_code, text):
+        """
+        :type status_code: int
+        :type text: str
+        """
+        self.status_code = status_code
+        self._content = text
+        self.raise_for_status = MagicMock()
+        self.headers = {}
+
+    def json(self):
+        return json.loads(self.content)
+
+
+class FakeLizzy(Lizzy):
     final_state = 'CF:CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
     delete = MagicMock()
 
     def __init__(self, base_url: str, access_token: str):
-        ...
+        self.access_token = "TOKEN"
+        self.base_url = URL('https://localhost')
 
     @classmethod
     def reset(cls):
@@ -32,58 +50,52 @@ class FakeLizzy:
         cls.delete.reset_mock()
         cls.traffic.reset_mock()
 
-    def new_stack(self, image_version, keep_stacks, traffic, definition,
-                  stack_version, app_version, disable_rollback, parameters):
-        assert isinstance(traffic, int)
-        if self.raise_exception:
-            raise requests.HTTPError('404 Not Found')
-        else:
-            return {'stack_name': 'stack1',
-                    'stack_version': '42',
-                    'description': 'stack1 (ImageVersion: 257)',
-                    'version': 'd42',
-                    'status': 'CF:CREATE_COMPLETE',
-                    'creation_time': '2016-01-01T12:00:00Z'}
-
     def wait_for_deployment(self, stack_id: str) -> [str]:
         return ['CF:WAITING', self.final_state]
 
-    def get_stacks(self, stack_reference=None) -> list:
-        stack1 = {'stack_name': 'stack1',
-                  "description": "stack1 (ImageVersion: 257)",
-                  'version': 's1',
-                  'status': 'CF:CREATE_COMPLETE',
-                  'creation_time': '2016-01-01T12:00:00Z'}
 
-        stack2 = {'stack_name': 'stack2',
-                  'version': 's2',
-                  "description": "stack1 (ImageVersion: 257)",
-                  'status': 'CF:TEST',
-                  'creation_time': '2015-12-01T12:00:00Z'}
+@pytest.fixture()
+def mock_lizzy_get(monkeypatch):
+    mock_get = MagicMock()
+    stack1 = {'stack_name': 'stack1',
+              "description": "stack1 (ImageVersion: 257)",
+              'version': 's1',
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': '2016-01-01T12:00:00Z'}
+    stack2 = {'stack_name': 'stack2',
+              'version': 's2',
+              "description": "stack1 (ImageVersion: 257)",
+              'status': 'CF:TEST',
+              'creation_time': '2015-12-01T12:00:00Z'}
 
-        stack3 = {'stack_name': 'stack1',
-                  'version': 's42',
-                  "description": "stack1 (ImageVersion: 257)",
-                  'status': 'CF:CREATE_COMPLETE',
-                  'creation_time': '2015-12-01T15:00:00Z'}
+    stack3 = {'stack_name': 'stack1',
+              'version': 's42',
+              "description": "stack1 (ImageVersion: 257)",
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': '2015-12-01T15:00:00Z'}
 
-        stack4 = {'stack_name': 'stack1',
-                  'version': 's7',
-                  "description": "stack1 (ImageVersion: 257)",
-                  'status': 'CF:CREATE_COMPLETE',
-                  'creation_time': '2016-01-01T10:00:00Z'}
+    stack4 = {'stack_name': 'stack1',
+              'version': 's7',
+              "description": "stack1 (ImageVersion: 257)",
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': '2016-01-01T10:00:00Z'}
+    mock_get.return_value = FakeResponse(200, json.dumps([stack1, stack2, stack3, stack4]))
+    monkeypatch.setattr('requests.get', mock_get)
+    return mock_get
 
-        stacks = [stack1, stack2, stack3, stack4]
 
-        if stack_reference:
-            stacks = [stack
-                      for stack in stacks
-                      if stack['stack_name'] in stack_reference]
-
-        if self.raise_exception:
-            raise requests.HTTPError('404 Not Found')
-        else:
-            return stacks
+@pytest.fixture()
+def mock_lizzy_post(monkeypatch):
+    mock_post = MagicMock()
+    stack1 = {'stack_name': 'stack1',
+              'stack_version': '42',
+              'description': 'stack1 (ImageVersion: 257)',
+              'version': 'd42',
+              'status': 'CF:CREATE_COMPLETE',
+              'creation_time': '2016-01-01T12:00:00Z'}
+    mock_post.return_value = FakeResponse(200, json.dumps(stack1))
+    monkeypatch.setattr('requests.post', mock_post)
+    return mock_post
 
 
 @pytest.fixture
@@ -115,7 +127,7 @@ def test_fetch_token(mock_get_token):
     assert repr(exception) == 'SystemExit(1,)'
 
 
-def test_create(mock_get_token, mock_fake_lizzy):
+def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
     result = runner.invoke(main, ['create', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
@@ -162,9 +174,9 @@ def test_create(mock_get_token, mock_fake_lizzy):
     assert 'Deployment failed: CF:CREATE_FAILED' in result.output
 
     FakeLizzy.reset()
-    FakeLizzy.raise_exception = True
+    mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
     result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Deployment failed: 404 Not Found' in result.output
+    assert 'Deployment failed:' in result.output
 
 
 def test_delete(mock_get_token, mock_fake_lizzy):
@@ -186,7 +198,7 @@ def test_version():
         assert str(version_segment) in result.output
 
 
-def test_list(mock_get_token, mock_fake_lizzy):
+def test_list(mock_get_token, mock_lizzy_get):
     stack1 = {'stack_name': 'stack1',
               "description": "stack1 (ImageVersion: 257)",
               'version': 's1',
@@ -225,6 +237,6 @@ def test_list(mock_get_token, mock_fake_lizzy):
     stack1_list = json.loads(str_json)  # type: list
     assert stack1_list == [stack1, stack3, stack4]
 
-    FakeLizzy.raise_exception = True
+    mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
     result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Failed to get stacks: 404 Not Found' in result.output
+    assert 'Failed to get stacks:' in result.output
