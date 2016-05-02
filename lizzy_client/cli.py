@@ -1,16 +1,3 @@
-"""
-Copyright 2015 Zalando SE
-
-Licensed under the Apache License, Version 2.0 (the 'License'); you may not use this file except in compliance with the
-License. You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
- language governing permissions and limitations under the License.
-"""
-
 from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup
 from tokens import InvalidCredentialsError
 from typing import Optional, List
@@ -85,15 +72,14 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--app-version', '-a',
               help='Application version, if provided will be used as the stack version and to register it in Kio.')
-@click.option('--stack-version', '-s',
-              help='Stack version, if provided will be used as the stack version.')
 @click.option('--disable-rollback', is_flag=True, help='Disable Cloud Formation rollback on failure')
 @click.argument('definition')  # TODO add definition type like senza
+@click.argument('stack-version')
 @click.argument('image_version')
 @click.argument('senza_parameters', nargs=-1)
 def create(definition: str, image_version: str, keep_stacks: int,
            traffic: int, verbose: bool, senza_parameters: list,
-           app_version: Optional[str], stack_version: Optional[str],
+           app_version: Optional[str], stack_version: str,
            disable_rollback: bool):
     '''Deploy a new Cloud Formation stack'''
     senza_parameters = senza_parameters or []

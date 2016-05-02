@@ -15,11 +15,11 @@ Create a new stack
 ------------------
 
 Use the `create` subcommand to create stacks. The syntax is
-`lizzy create [OPTIONS] DEFINITION IMAGE_VERSION`:
+`lizzy create [OPTIONS] DEFINITION STACK_VERSION IMAGE_VERSION`:
 
 .. code-block::
 
-    $ lizzy create  senza.yaml 1.0
+    $ lizzy create senza.yaml 42 1.0
 
 For see more options use `lizzy create --help`.
 

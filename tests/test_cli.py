@@ -129,7 +129,8 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
-    result = runner.invoke(main, ['create', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', config_path, '42', '1.0'],
+                           env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
     assert 'Stack ID: stack1-d42' in result.output
@@ -143,16 +144,17 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     FakeLizzy.reset()
 
     # with explicit traffic
-    result = runner.invoke(main, ['create', config_path, '1.0', '--traffic', '42'],
+    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--traffic', '42'],
                            env=FAKE_ENV, catch_exceptions=False)
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 42)
     FakeLizzy.reset()
 
     # with kio version approval
-    result = runner.invoke(main, ['create', config_path, '1.0', '-a', '42'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', config_path, '43', '1.0', '-a', '42'], env=FAKE_ENV, catch_exceptions=False)
     assert 'kio version approve stack1 42' in result.output
 
-    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', '-v', config_path, '42', '1.0'],
+                           env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
     assert 'Stack ID: stack1-d42' in result.output
@@ -162,20 +164,20 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Deployment Successful' in result.output
 
     FakeLizzy.final_state = 'CF:ROLLBACK_COMPLETE'
-    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', '-v', config_path, '7', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Stack was rollback after deployment. Check you application log for possible reasons.' in result.output
 
     FakeLizzy.final_state = 'LIZZY:REMOVED'
-    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Stack was removed before deployment finished.' in result.output
 
     FakeLizzy.final_state = 'CF:CREATE_FAILED'
-    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Deployment failed: CF:CREATE_FAILED' in result.output
 
     FakeLizzy.reset()
     mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
-    result = runner.invoke(main, ['create', '-v', config_path, '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Deployment failed:' in result.output
 
 
