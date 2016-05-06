@@ -125,8 +125,6 @@ def create(definition: str, image_version: str, keep_stacks: int,
         # TODO be prepared to handle all final AWS CF states
         if last_state == 'CF:ROLLBACK_COMPLETE':
             fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
-        elif last_state == 'LIZZY:REMOVED':
-            fatal_error('Stack was removed before deployment finished.')
         elif last_state != 'CF:CREATE_COMPLETE':
             fatal_error('Deployment failed: {}'.format(last_state))
 
