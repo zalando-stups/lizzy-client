@@ -11,22 +11,18 @@ from .configuration import Configuration
 from .version import VERSION
 
 STYLES = {
-    'CF:RUNNING': {'fg': 'green'},
-    'CF:TERMINATED': {'fg': 'red'},
-    'CF:DELETE_COMPLETE': {'fg': 'red'},
-    'CF:ROLLBACK_COMPLETE': {'fg': 'red'},
-    'CF:CREATE_COMPLETE': {'fg': 'green'},
-    'CF:CREATE_FAILED': {'fg': 'red'},
-    'CF:CREATE_IN_PROGRESS': {'fg': 'yellow', 'bold': True},
-    'CF:DELETE_IN_PROGRESS': {'fg': 'red', 'bold': True},
-    'CF:ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
-    'CF:IN_SERVICE': {'fg': 'green'},
-    'CF:OUT_OF_SERVICE': {'fg': 'red'},
-    'LIZZY:NEW': {'fg': 'yellow', 'bold': True},
-    'LIZZY:CHANGE': {'fg': 'yellow', 'bold': True},
-    'LIZZY:DEPLOYING': {'fg': 'yellow', 'bold': True},
-    'LIZZY:DEPLOYED': {'fg': 'green'},
-    'LIZZY:REMOVED': {'fg': 'red'}}
+    'RUNNING': {'fg': 'green'},
+    'TERMINATED': {'fg': 'red'},
+    'DELETE_COMPLETE': {'fg': 'red'},
+    'ROLLBACK_COMPLETE': {'fg': 'red'},
+    'CREATE_COMPLETE': {'fg': 'green'},
+    'CREATE_FAILED': {'fg': 'red'},
+    'CREATE_IN_PROGRESS': {'fg': 'yellow', 'bold': True},
+    'DELETE_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'IN_SERVICE': {'fg': 'green'},
+    'OUT_OF_SERVICE': {'fg': 'red'},
+    'UPDATE_COMPLETE': {'fg': 'green'}, }
 
 TITLES = {
     'creation_time': 'Created',
@@ -65,8 +61,9 @@ def agent_error(e: requests.HTTPError, fatal=True):
     Prints an agent error and exits
     """
     data = e.response.json()
-    output = data['detail']
-    msg = '[AGENT] {}'.format(output)
+    output = data['detail']  # type: str
+    lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
+    msg = '\n' + '\n'.join(lines)
     if fatal:
         fatal_error(msg)
     else:
