@@ -50,11 +50,21 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
                             help='Auto update the screen every X seconds')
 
 
-def agent_error(error: requests.RequestException, fatal=True):
+def connection_error(e: requests.ConnectionError, fatal=True):
+    reason = e.args[0].reason   # type: requests.packages.urllib3.exceptions.NewConnectionError
+    _, pretty_reason = str(reason).split(':', 1)
+    msg = ' {}'.format(pretty_reason)
+    if fatal:
+        fatal_error(msg)
+    else:
+        error(msg)
+
+
+def agent_error(e: requests.HTTPError, fatal=True):
     """
     Prints an agent error and exits
     """
-    data = error.response.json()
+    data = e.response.json()
     output = data['detail']
     msg = '[AGENT] {}'.format(output)
     if fatal:
@@ -109,7 +119,9 @@ def create(definition: str, image_version: str, keep_stacks: int,
                                         definition, stack_version, app_version,
                                         disable_rollback, senza_parameters)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
-        except requests.RequestException as e:
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
             agent_error(e)
 
     info('Stack ID: {}'.format(stack_id))
@@ -138,16 +150,21 @@ def create(definition: str, image_version: str, keep_stacks: int,
         with Action('Requesting traffic change..'):
             try:
                 lizzy.traffic(stack_id, traffic)
-            except requests.RequestException as error:
-                agent_error(error, fatal=False)
+            except requests.ConnectionError as e:
+                connection_error(e, fatal=False)
+            except requests.HTTPError as e:
+                agent_error(e, fatal=False)
 
     # TODO unit test this
     # TODO don't delete stacks by default
     versions_to_keep = keep_stacks + 1
     try:
         all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-    except requests.RequestException as error:
-        agent_error(error, fatal=False)
+    except requests.ConnectionError as e:
+        connection_error(e, fatal=False)
+        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+    except requests.HTTPError as e:
+        agent_error(e, fatal=False)
         error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
     else:
         sorted_stacks = sorted(all_stacks,
@@ -160,8 +177,10 @@ def create(definition: str, image_version: str, keep_stacks: int,
                 click.echo(' {}'.format(old_stack_id))
                 try:
                     lizzy.delete(old_stack_id)
-                except requests.RequestException as error:
-                    agent_error(error, fatal=False)
+                except requests.ConnectionError as e:
+                    connection_error(e, fatal=False)
+                except requests.HTTPError as e:
+                    agent_error(e, fatal=False)
 
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
@@ -187,8 +206,10 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
         # TODO reimplement all later
         try:
             stacks = lizzy.get_stacks(stack_ref)
-        except requests.RequestException as error:
-            agent_error(error)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
         rows = []
         for stack in stacks:
@@ -225,7 +246,12 @@ def traffic(stack_name: str, stack_version: str, percentage: int):
 
     with Action('Requesting traffic change..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        lizzy.traffic(stack_id, percentage)
+        try:
+            lizzy.traffic(stack_id, percentage)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
 
 @main.command()
@@ -241,7 +267,12 @@ def delete(stack_name: str, stack_version: str):
 
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        lizzy.delete(stack_id)
+        try:
+            lizzy.delete(stack_id)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
 
 @main.command()
