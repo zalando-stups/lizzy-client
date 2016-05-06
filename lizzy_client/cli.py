@@ -106,7 +106,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
                                         disable_rollback, senza_parameters)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.RequestException as e:
-            action.fatal_error('Deployment failed: {}.'.format(e))
+            agent_error(e)
 
     info('Stack ID: {}'.format(stack_id))
 

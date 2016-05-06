@@ -172,9 +172,10 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Deployment failed: CF:CREATE_FAILED' in result.output
 
     FakeLizzy.reset()
-    mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
+    mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, '{"detail": "Not Found"}'))
     result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Deployment failed:' in result.output
+    assert '[AGENT] Not Found' in result.output
+    assert result.exit_code == 1
 
 
 def test_delete(mock_get_token, mock_fake_lizzy):
