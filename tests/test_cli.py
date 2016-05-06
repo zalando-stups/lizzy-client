@@ -165,7 +165,7 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
 
     FakeLizzy.final_state = 'CF:ROLLBACK_COMPLETE'
     result = runner.invoke(main, ['create', '-v', config_path, '7', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Stack was rollback after deployment. Check you application log for possible reasons.' in result.output
+    assert 'Stack was rollback after deployment. Check your application log for possible reasons.' in result.output
 
     FakeLizzy.final_state = 'CF:CREATE_FAILED'
     result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
