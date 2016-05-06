@@ -1,4 +1,4 @@
-from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup
+from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup, error
 from tokens import InvalidCredentialsError
 from typing import Optional, List
 import click
@@ -50,13 +50,17 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
                             help='Auto update the screen every X seconds')
 
 
-def agent_error(error: requests.RequestException):
+def agent_error(error: requests.RequestException, fatal=True):
     """
     Prints an agent error and exits
     """
     data = error.response.json()
     output = data['detail']
-    fatal_error('[AGENT] {}'.format(output))
+    msg = '[AGENT] {}'.format(output)
+    if fatal:
+        fatal_error(msg)
+    else:
+        error(msg)
 
 
 def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
@@ -124,7 +128,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
         # TODO be prepared to handle all final AWS CF states
         if last_state == 'CF:ROLLBACK_COMPLETE':
-            fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
+            fatal_error('Stack was rollback after deployment. Check your application log for possible reasons.')
         elif last_state != 'CF:CREATE_COMPLETE':
             fatal_error('Deployment failed: {}'.format(last_state))
 
@@ -132,22 +136,32 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
     if traffic is not None:
         with Action('Requesting traffic change..'):
-            # TODO error handling
-            lizzy.traffic(stack_id, traffic)
+            try:
+                lizzy.traffic(stack_id, traffic)
+            except requests.RequestException as error:
+                agent_error(error, fatal=False)
 
-    # TODO error handling
     # TODO unit test this
+    # TODO don't delete stacks by default
     versions_to_keep = keep_stacks + 1
-    all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-    sorted_stacks = sorted(all_stacks,
-                           key=lambda stack: stack['creation_time'])
-    stacks_to_remove = sorted_stacks[:-versions_to_keep]
-    with Action('Deleting old stacks..') as action:
-        print()
-        for old_stack in stacks_to_remove:
-            old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
-            click.echo(' {}'.format(old_stack_id))
-            lizzy.delete(old_stack_id)
+    try:
+        all_stacks = lizzy.get_stacks([new_stack['stack_name']])
+    except requests.RequestException as error:
+        agent_error(error, fatal=False)
+        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+    else:
+        sorted_stacks = sorted(all_stacks,
+                               key=lambda stack: stack['creation_time'])
+        stacks_to_remove = sorted_stacks[:-versions_to_keep]
+        with Action('Deleting old stacks..') as action:
+            print()
+            for old_stack in stacks_to_remove:
+                old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
+                click.echo(' {}'.format(old_stack_id))
+                try:
+                    lizzy.delete(old_stack_id)
+                except requests.RequestException as error:
+                    agent_error(error, fatal=False)
 
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
