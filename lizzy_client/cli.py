@@ -50,6 +50,15 @@ watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metava
                             help='Auto update the screen every X seconds')
 
 
+def agent_error(error: requests.RequestException):
+    """
+    Prints an agent error and exits
+    """
+    data = error.response.json()
+    output = data['detail']
+    fatal_error('[AGENT] {}'.format(output))
+
+
 def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
     """
     Common function to fetch token
@@ -166,8 +175,8 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
         # TODO reimplement all later
         try:
             stacks = lizzy.get_stacks(stack_ref)
-        except requests.RequestException as e:
-            fatal_error('Failed to get stacks: {}'.format(e))
+        except requests.RequestException as error:
+            agent_error(error)
 
         rows = []
         for stack in stacks:
