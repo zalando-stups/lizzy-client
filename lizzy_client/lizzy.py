@@ -40,7 +40,7 @@ def make_header(access_token: str):
 
 class Lizzy:
     def __init__(self, base_url: str, access_token: str):
-        self.base_url = URL(base_url)
+        self.base_url = URL(base_url.rstrip('/'))
         self.access_token = access_token
 
     @property
