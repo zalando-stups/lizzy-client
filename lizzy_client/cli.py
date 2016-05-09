@@ -1,4 +1,4 @@
-from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup
+from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup, error
 from tokens import InvalidCredentialsError
 from typing import Optional, List
 import click
@@ -11,22 +11,18 @@ from .configuration import Configuration
 from .version import VERSION
 
 STYLES = {
-    'CF:RUNNING': {'fg': 'green'},
-    'CF:TERMINATED': {'fg': 'red'},
-    'CF:DELETE_COMPLETE': {'fg': 'red'},
-    'CF:ROLLBACK_COMPLETE': {'fg': 'red'},
-    'CF:CREATE_COMPLETE': {'fg': 'green'},
-    'CF:CREATE_FAILED': {'fg': 'red'},
-    'CF:CREATE_IN_PROGRESS': {'fg': 'yellow', 'bold': True},
-    'CF:DELETE_IN_PROGRESS': {'fg': 'red', 'bold': True},
-    'CF:ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
-    'CF:IN_SERVICE': {'fg': 'green'},
-    'CF:OUT_OF_SERVICE': {'fg': 'red'},
-    'LIZZY:NEW': {'fg': 'yellow', 'bold': True},
-    'LIZZY:CHANGE': {'fg': 'yellow', 'bold': True},
-    'LIZZY:DEPLOYING': {'fg': 'yellow', 'bold': True},
-    'LIZZY:DEPLOYED': {'fg': 'green'},
-    'LIZZY:REMOVED': {'fg': 'red'}}
+    'RUNNING': {'fg': 'green'},
+    'TERMINATED': {'fg': 'red'},
+    'DELETE_COMPLETE': {'fg': 'red'},
+    'ROLLBACK_COMPLETE': {'fg': 'red'},
+    'CREATE_COMPLETE': {'fg': 'green'},
+    'CREATE_FAILED': {'fg': 'red'},
+    'CREATE_IN_PROGRESS': {'fg': 'yellow', 'bold': True},
+    'DELETE_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
+    'IN_SERVICE': {'fg': 'green'},
+    'OUT_OF_SERVICE': {'fg': 'red'},
+    'UPDATE_COMPLETE': {'fg': 'green'}, }
 
 TITLES = {
     'creation_time': 'Created',
@@ -48,6 +44,30 @@ output_option = click.option('-o', '--output', type=click.Choice(['text', 'json'
                              help='Use alternative output format')
 watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
                             help='Auto update the screen every X seconds')
+
+
+def connection_error(e: requests.ConnectionError, fatal=True):
+    reason = e.args[0].reason   # type: requests.packages.urllib3.exceptions.NewConnectionError
+    _, pretty_reason = str(reason).split(':', 1)
+    msg = ' {}'.format(pretty_reason)
+    if fatal:
+        fatal_error(msg)
+    else:
+        error(msg)
+
+
+def agent_error(e: requests.HTTPError, fatal=True):
+    """
+    Prints an agent error and exits
+    """
+    data = e.response.json()
+    output = data['detail']  # type: str
+    lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
+    msg = '\n' + '\n'.join(lines)
+    if fatal:
+        fatal_error(msg)
+    else:
+        error(msg)
 
 
 def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
@@ -96,8 +116,10 @@ def create(definition: str, image_version: str, keep_stacks: int,
                                         definition, stack_version, app_version,
                                         disable_rollback, senza_parameters)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
-        except requests.RequestException as e:
-            action.fatal_error('Deployment failed: {}.'.format(e))
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
     info('Stack ID: {}'.format(stack_id))
 
@@ -115,9 +137,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
         # TODO be prepared to handle all final AWS CF states
         if last_state == 'CF:ROLLBACK_COMPLETE':
-            fatal_error('Stack was rollback after deployment. Check you application log for possible reasons.')
-        elif last_state == 'LIZZY:REMOVED':
-            fatal_error('Stack was removed before deployment finished.')
+            fatal_error('Stack was rollback after deployment. Check your application log for possible reasons.')
         elif last_state != 'CF:CREATE_COMPLETE':
             fatal_error('Deployment failed: {}'.format(last_state))
 
@@ -125,22 +145,39 @@ def create(definition: str, image_version: str, keep_stacks: int,
 
     if traffic is not None:
         with Action('Requesting traffic change..'):
-            # TODO error handling
-            lizzy.traffic(stack_id, traffic)
+            try:
+                lizzy.traffic(stack_id, traffic)
+            except requests.ConnectionError as e:
+                connection_error(e, fatal=False)
+            except requests.HTTPError as e:
+                agent_error(e, fatal=False)
 
-    # TODO error handling
     # TODO unit test this
+    # TODO don't delete stacks by default
     versions_to_keep = keep_stacks + 1
-    all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-    sorted_stacks = sorted(all_stacks,
-                           key=lambda stack: stack['creation_time'])
-    stacks_to_remove = sorted_stacks[:-versions_to_keep]
-    with Action('Deleting old stacks..') as action:
-        print()
-        for old_stack in stacks_to_remove:
-            old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
-            click.echo(' {}'.format(old_stack_id))
-            lizzy.delete(old_stack_id)
+    try:
+        all_stacks = lizzy.get_stacks([new_stack['stack_name']])
+    except requests.ConnectionError as e:
+        connection_error(e, fatal=False)
+        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+    except requests.HTTPError as e:
+        agent_error(e, fatal=False)
+        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+    else:
+        sorted_stacks = sorted(all_stacks,
+                               key=lambda stack: stack['creation_time'])
+        stacks_to_remove = sorted_stacks[:-versions_to_keep]
+        with Action('Deleting old stacks..') as action:
+            print()
+            for old_stack in stacks_to_remove:
+                old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
+                click.echo(' {}'.format(old_stack_id))
+                try:
+                    lizzy.delete(old_stack_id)
+                except requests.ConnectionError as e:
+                    connection_error(e, fatal=False)
+                except requests.HTTPError as e:
+                    agent_error(e, fatal=False)
 
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
@@ -166,8 +203,10 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
         # TODO reimplement all later
         try:
             stacks = lizzy.get_stacks(stack_ref)
-        except requests.RequestException as e:
-            fatal_error('Failed to get stacks: {}'.format(e))
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
         rows = []
         for stack in stacks:
@@ -204,7 +243,12 @@ def traffic(stack_name: str, stack_version: str, percentage: int):
 
     with Action('Requesting traffic change..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        lizzy.traffic(stack_id, percentage)
+        try:
+            lizzy.traffic(stack_id, percentage)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
 
 @main.command()
@@ -220,7 +264,12 @@ def delete(stack_name: str, stack_version: str):
 
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        lizzy.delete(stack_id)
+        try:
+            lizzy.delete(stack_id)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
 
 
 @main.command()

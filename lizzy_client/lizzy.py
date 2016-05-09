@@ -6,17 +6,6 @@ import json
 import requests
 import time
 
-FINAL_STATES = ["CF:CREATE_COMPLETE",
-                "CF:CREATE_FAILED",
-                "CF:DELETE_COMPLETE",
-                "CF:DELETE_FAILED",
-                "CF:DELETE_IN_PROGRESS"
-                "CF:ROLLBACK_COMPLETE",
-                "CF:ROLLBACK_FAILED",
-                "CF:ROLLBACK_IN_PROGRESS",
-                "LIZZY:ERROR",
-                "LIZZY:REMOVED"]
-
 
 def make_header(access_token: str):
     headers = dict()
@@ -130,7 +119,7 @@ class Lizzy:
                 status = stack["status"]
                 retries = 3  # reset the number of retries
                 yield status
-                if status in FINAL_STATES:
+                if status.endswith('_FAILED') or status.endswith('_COMPLETE'):
                     return status
             except Exception as e:
                 retries -= 1

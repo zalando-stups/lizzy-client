@@ -165,20 +165,17 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
 
     FakeLizzy.final_state = 'CF:ROLLBACK_COMPLETE'
     result = runner.invoke(main, ['create', '-v', config_path, '7', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Stack was rollback after deployment. Check you application log for possible reasons.' in result.output
-
-    FakeLizzy.final_state = 'LIZZY:REMOVED'
-    result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Stack was removed before deployment finished.' in result.output
+    assert 'Stack was rollback after deployment. Check your application log for possible reasons.' in result.output
 
     FakeLizzy.final_state = 'CF:CREATE_FAILED'
     result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Deployment failed: CF:CREATE_FAILED' in result.output
 
     FakeLizzy.reset()
-    mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
+    mock_lizzy_post.side_effect = requests.HTTPError(response=FakeResponse(404, '{"detail": "Not Found"}'))
     result = runner.invoke(main, ['create', '-v', config_path, 'version', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Deployment failed:' in result.output
+    assert '[AGENT] Not Found' in result.output
+    assert result.exit_code == 1
 
 
 def test_delete(mock_get_token, mock_fake_lizzy):
@@ -239,6 +236,7 @@ def test_list(mock_get_token, mock_lizzy_get):
     stack1_list = json.loads(str_json)  # type: list
     assert stack1_list == [stack1, stack3, stack4]
 
-    mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404, "Not Found"))
+    mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404,
+                                                                          '{"detail": "Detailed Error"}'))
     result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Failed to get stacks:' in result.output
+    assert '[AGENT] Detailed Error' in result.output
