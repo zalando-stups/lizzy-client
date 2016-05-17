@@ -34,7 +34,7 @@ class FakeResponse(requests.Response):
 
 
 class FakeLizzy(Lizzy):
-    final_state = 'CF:CREATE_COMPLETE'
+    final_state = 'CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
     delete = MagicMock()
@@ -45,7 +45,7 @@ class FakeLizzy(Lizzy):
 
     @classmethod
     def reset(cls):
-        cls.final_state = 'CF:CREATE_COMPLETE'
+        cls.final_state = 'CREATE_COMPLETE'
         cls.raise_exception = False
         cls.delete.reset_mock()
         cls.traffic.reset_mock()
@@ -60,7 +60,7 @@ def mock_lizzy_get(monkeypatch):
     stack1 = {'stack_name': 'stack1',
               "description": "stack1 (ImageVersion: 257)",
               'version': 's1',
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': '2016-01-01T12:00:00Z'}
     stack2 = {'stack_name': 'stack2',
               'version': 's2',
@@ -71,13 +71,13 @@ def mock_lizzy_get(monkeypatch):
     stack3 = {'stack_name': 'stack1',
               'version': 's42',
               "description": "stack1 (ImageVersion: 257)",
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': '2015-12-01T15:00:00Z'}
 
     stack4 = {'stack_name': 'stack1',
               'version': 's7',
               "description": "stack1 (ImageVersion: 257)",
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': '2016-01-01T10:00:00Z'}
     mock_get.return_value = FakeResponse(200, json.dumps([stack1, stack2, stack3, stack4]))
     monkeypatch.setattr('requests.get', mock_get)
@@ -91,7 +91,7 @@ def mock_lizzy_post(monkeypatch):
               'stack_version': '42',
               'description': 'stack1 (ImageVersion: 257)',
               'version': 'd42',
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': '2016-01-01T12:00:00Z'}
     mock_post.return_value = FakeResponse(200, json.dumps(stack1))
     monkeypatch.setattr('requests.post', mock_post)
@@ -160,10 +160,10 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Stack ID: stack1-d42' in result.output
     assert 'Waiting for new stack...\n' in result.output
     assert 'CF:WAITING' in result.output
-    assert 'CF:CREATE_COMPLETE' in result.output
+    assert 'CREATE_COMPLETE' in result.output
     assert 'Deployment Successful' in result.output
 
-    FakeLizzy.final_state = 'CF:ROLLBACK_COMPLETE'
+    FakeLizzy.final_state = 'ROLLBACK_COMPLETE'
     result = runner.invoke(main, ['create', '-v', config_path, '7', '1.0'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Stack was rollback after deployment. Check your application log for possible reasons.' in result.output
 
@@ -201,7 +201,7 @@ def test_list(mock_get_token, mock_lizzy_get):
     stack1 = {'stack_name': 'stack1',
               "description": "stack1 (ImageVersion: 257)",
               'version': 's1',
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': 1451649600.0}
 
     stack2 = {'stack_name': 'stack2',
@@ -213,13 +213,13 @@ def test_list(mock_get_token, mock_lizzy_get):
     stack3 = {'stack_name': 'stack1',
               'version': 's42',
               "description": "stack1 (ImageVersion: 257)",
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': 1448982000.0}
 
     stack4 = {'stack_name': 'stack1',
               "description": "stack1 (ImageVersion: 257)",
               'version': 's7',
-              'status': 'CF:CREATE_COMPLETE',
+              'status': 'CREATE_COMPLETE',
               'creation_time': 1451642400.0}
 
     runner = CliRunner()

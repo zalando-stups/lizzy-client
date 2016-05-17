@@ -197,13 +197,13 @@ def test_wait_for_deployment(monkeypatch):
     monkeypatch.setattr('time.sleep', MagicMock())
     mock_get_stack = MagicMock()
     mock_get_stack.side_effect = [{'status': 'CF:SOME_STATE'}, {'status': 'CF:SOME_STATE'},
-                                  {'status': 'CF:SOME_OTHER_STATE'}, {'status': 'CF:CREATE_COMPLETE'}]
+                                  {'status': 'CF:SOME_OTHER_STATE'}, {'status': 'CREATE_COMPLETE'}]
     monkeypatch.setattr('lizzy_client.lizzy.Lizzy.get_stack', mock_get_stack)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
     states = list(lizzy.wait_for_deployment('574CC1D'))
 
-    assert states == ['CF:SOME_STATE', 'CF:SOME_STATE', 'CF:SOME_OTHER_STATE', 'CF:CREATE_COMPLETE']
+    assert states == ['CF:SOME_STATE', 'CF:SOME_STATE', 'CF:SOME_OTHER_STATE', 'CREATE_COMPLETE']
 
     mock_get_stack.reset_mock()
     mock_get_stack.side_effect = [{'wrong_key': 'CF:SOME_STATE'}, {'wrong_key': 'CF:SOME_STATE'},
