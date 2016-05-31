@@ -129,7 +129,21 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
+    runner = CliRunner()
     result = runner.invoke(main, ['create', config_path, '42', '1.0'],
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert 'Fetching authentication token.. . OK' in result.output
+    assert 'Requesting new stack.. OK' in result.output
+    assert 'Stack ID: stack1-d42' in result.output
+    assert 'Waiting for new stack... . . OK' in result.output
+    assert 'Deployment Successful' in result.output
+    assert 'kio version approve' not in result.output
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
+    FakeLizzy.delete.assert_not_called()
+    FakeLizzy.reset()
+
+    result = runner.invoke(main, ['create', config_path, '--keep-stacks', '0',
+                                  '42', '1.0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
