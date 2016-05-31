@@ -16,12 +16,13 @@ def make_header(access_token: str):
 
 class Lizzy:
     def __init__(self, base_url: str, access_token: str):
-        self.base_url = URL(base_url.rstrip('/'))
+        base_url = URL(base_url.rstrip('/'))
+        self.api_url = base_url if base_url.path == '/api' else base_url / 'api'
         self.access_token = access_token
 
     @property
     def stacks_url(self) -> URL:
-        return self.base_url / 'stacks'
+        return self.api_url / 'stacks'
 
     def delete(self, stack_id: str):
         url = self.stacks_url / stack_id

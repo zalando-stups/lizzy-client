@@ -41,7 +41,7 @@ class FakeLizzy(Lizzy):
 
     def __init__(self, base_url: str, access_token: str):
         self.access_token = "TOKEN"
-        self.base_url = URL('https://localhost')
+        self.api_url = URL('https://localhost')
 
     @classmethod
     def reset(cls):

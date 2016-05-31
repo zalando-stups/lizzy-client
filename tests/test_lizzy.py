@@ -34,8 +34,8 @@ def test_make_header():
 
 
 def test_properties():
-    assert str(Lizzy('https://lizzy.example', '7E5770K3N').stacks_url) == 'https://lizzy.example/stacks'
-    assert str(Lizzy('https://lizzy-2.example', '7E5770K3N').stacks_url) == 'https://lizzy-2.example/stacks'
+    assert str(Lizzy('https://lizzy.example', '7E5770K3N').stacks_url) == 'https://lizzy.example/api/stacks'
+    assert str(Lizzy('https://lizzy-2.example', '7E5770K3N').stacks_url) == 'https://lizzy-2.example/api/stacks'
 
 
 def test_delete(monkeypatch):
@@ -46,7 +46,7 @@ def test_delete(monkeypatch):
     lizzy.delete('574CC')
 
     header = make_header('7E5770K3N')
-    mock_delete.assert_called_once_with('https://lizzy.example/stacks/574CC', headers=header, verify=False)
+    mock_delete.assert_called_once_with('https://lizzy.example/api/stacks/574CC', headers=header, verify=False)
 
 
 def test_get_stack(monkeypatch):
@@ -58,7 +58,7 @@ def test_get_stack(monkeypatch):
     stack = lizzy.get_stack('574CC')
 
     header = make_header('7E5770K3N')
-    mock_get.assert_called_once_with('https://lizzy.example/stacks/574CC', None, headers=header, verify=False)
+    mock_get.assert_called_once_with('https://lizzy.example/api/stacks/574CC', None, headers=header, verify=False)
 
     assert stack['stack'] == 'fake'
 
@@ -72,7 +72,7 @@ def test_get_stacks(monkeypatch):
     stacks = lizzy.get_stacks()
 
     header = make_header('7E5770K3N')
-    mock_get.assert_called_once_with('https://lizzy.example/stacks', None, headers=header, verify=False)
+    mock_get.assert_called_once_with('https://lizzy.example/api/stacks', None, headers=header, verify=False)
 
     assert stacks == ["stack1", "stack2"]
 
@@ -86,7 +86,8 @@ def test_traffic(monkeypatch):
     lizzy.traffic('574CC', 42)
 
     header = make_header('7E5770K3N')
-    mock_patch.assert_called_once_with('https://lizzy.example/stacks/574CC', headers=header, data='{"new_traffic": 42}',
+    mock_patch.assert_called_once_with('https://lizzy.example/api/stacks/574CC',
+                                       headers=header, data='{"new_traffic": 42}',
                                        verify=False)
 
 
@@ -118,7 +119,7 @@ def test_new_stack(monkeypatch):
             'parameters': [],
             'disable_rollback': True,
             'senza_yaml': senza_yaml}
-    mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
+    mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
                                       data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
@@ -140,7 +141,7 @@ def test_new_stack(monkeypatch):
             'parameters': [],
             'disable_rollback': False,
             'senza_yaml': senza_yaml}
-    mock_post.assert_called_once_with('https://lizzy.example/stacks', headers=header,
+    mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
                                       data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
@@ -153,7 +154,7 @@ def test_new_stack(monkeypatch):
                      'senza_yaml': senza_yaml,
                      'disable_rollback': False}
     lizzy.new_stack('10', 2, 42, yaml_path, None, False, [])
-    mock_post.assert_called_once_with('https://lizzy.example/stacks',
+    mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_ver, sort_keys=True),
                                       json=None,
@@ -167,7 +168,7 @@ def test_new_stack(monkeypatch):
                         'senza_yaml': senza_yaml,
                         'disable_rollback': True}
     lizzy.new_stack('10', 2, 42, yaml_path, None, True, ['abc', 'def'])
-    mock_post.assert_called_once_with('https://lizzy.example/stacks',
+    mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_params, sort_keys=True),
                                       json=None,
@@ -182,7 +183,7 @@ def test_new_stack(monkeypatch):
                                'disable_rollback': True,
                                "stack_version": "7", }
     lizzy.new_stack('10', 2, 42, yaml_path, "7", True, ['abc', 'def'])
-    mock_post.assert_called_once_with('https://lizzy.example/stacks',
+    mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_stack_version, sort_keys=True),
                                       json=None,
