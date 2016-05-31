@@ -86,8 +86,8 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 
 
 @main.command()
-@click.option('--keep-stacks', default=0, help="Number of old stacks to keep")
-@click.option('--traffic', default=100, type=click.IntRange(0, 100, clamp=True),
+@click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
+@click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--app-version', '-a',
@@ -153,31 +153,31 @@ def create(definition: str, image_version: str, keep_stacks: int,
                 agent_error(e, fatal=False)
 
     # TODO unit test this
-    # TODO don't delete stacks by default
-    versions_to_keep = keep_stacks + 1
-    try:
-        all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-    except requests.ConnectionError as e:
-        connection_error(e, fatal=False)
-        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
-    except requests.HTTPError as e:
-        agent_error(e, fatal=False)
-        error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
-    else:
-        sorted_stacks = sorted(all_stacks,
-                               key=lambda stack: stack['creation_time'])
-        stacks_to_remove = sorted_stacks[:-versions_to_keep]
-        with Action('Deleting old stacks..') as action:
-            print()
-            for old_stack in stacks_to_remove:
-                old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
-                click.echo(' {}'.format(old_stack_id))
-                try:
-                    lizzy.delete(old_stack_id)
-                except requests.ConnectionError as e:
-                    connection_error(e, fatal=False)
-                except requests.HTTPError as e:
-                    agent_error(e, fatal=False)
+    if keep_stacks is not None:
+        versions_to_keep = keep_stacks + 1
+        try:
+            all_stacks = lizzy.get_stacks([new_stack['stack_name']])
+        except requests.ConnectionError as e:
+            connection_error(e, fatal=False)
+            error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+        except requests.HTTPError as e:
+            agent_error(e, fatal=False)
+            error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+        else:
+            sorted_stacks = sorted(all_stacks,
+                                   key=lambda stack: stack['creation_time'])
+            stacks_to_remove = sorted_stacks[:-versions_to_keep]
+            with Action('Deleting old stacks..') as action:
+                print()
+                for old_stack in stacks_to_remove:
+                    old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
+                    click.echo(' {}'.format(old_stack_id))
+                    try:
+                        lizzy.delete(old_stack_id)
+                    except requests.ConnectionError as e:
+                        connection_error(e, fatal=False)
+                    except requests.HTTPError as e:
+                        agent_error(e, fatal=False)
 
     if app_version:
         info('You can approve this new version using the command:\n\n\t'
