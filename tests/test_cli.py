@@ -138,11 +138,13 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
-    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 0)
     FakeLizzy.delete.assert_not_called()
     FakeLizzy.reset()
 
-    result = runner.invoke(main, ['create', config_path, '--keep-stacks', '0',
+    result = runner.invoke(main, ['create', config_path,
+                                  '--keep-stacks', '0',
+                                  '--traffic', '100',
                                   '42', '1.0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output

@@ -87,7 +87,7 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 
 @main.command()
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
-@click.option('--traffic', default=100, type=click.IntRange(0, 100, clamp=True),
+@click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--app-version', '-a',
