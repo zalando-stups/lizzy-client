@@ -100,7 +100,7 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.argument('stack-version')
 @click.argument('image_version')
 @click.argument('senza_parameters', nargs=-1)
-def create(definition: str, image_version: str, keep_stacks: int,
+def create(definition: str, image_version: str, keep_stacks: Optional[int],
            traffic: int, verbose: bool, senza_parameters: list,
            stack_version: str, disable_rollback: bool):
     """Deploy a new Cloud Formation stack"""
