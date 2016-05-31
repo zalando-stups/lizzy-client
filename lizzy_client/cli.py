@@ -90,8 +90,6 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
 @click.option('--verbose', '-v', is_flag=True)
-@click.option('--app-version', '-a',
-              help='Application version, if provided will be used as the stack version and to register it in Kio.')
 @click.option('--disable-rollback', is_flag=True, help='Disable Cloud Formation rollback on failure')
 @click.argument('definition')  # TODO add definition type like senza
 @click.argument('stack-version')
@@ -99,9 +97,8 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.argument('senza_parameters', nargs=-1)
 def create(definition: str, image_version: str, keep_stacks: int,
            traffic: int, verbose: bool, senza_parameters: list,
-           app_version: Optional[str], stack_version: str,
-           disable_rollback: bool):
-    '''Deploy a new Cloud Formation stack'''
+           stack_version: str, disable_rollback: bool):
+    """Deploy a new Cloud Formation stack"""
     senza_parameters = senza_parameters or []
 
     config = Configuration()
@@ -113,7 +110,7 @@ def create(definition: str, image_version: str, keep_stacks: int,
     with Action('Requesting new stack..') as action:
         try:
             new_stack = lizzy.new_stack(image_version, keep_stacks, traffic,
-                                        definition, stack_version, app_version,
+                                        definition, stack_version,
                                         disable_rollback, senza_parameters)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
@@ -178,11 +175,6 @@ def create(definition: str, image_version: str, keep_stacks: int,
                         connection_error(e, fatal=False)
                     except requests.HTTPError as e:
                         agent_error(e, fatal=False)
-
-    if app_version:
-        info('You can approve this new version using the command:\n\n\t'
-             '$ kio version approve {app_name} {version}'.format(
-                 app_name=new_stack['stack_name'], version=app_version))
 
 
 @main.command('list')

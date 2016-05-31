@@ -165,10 +165,6 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 42)
     FakeLizzy.reset()
 
-    # with kio version approval
-    result = runner.invoke(main, ['create', config_path, '43', '1.0', '-a', '42'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'kio version approve stack1 42' in result.output
-
     result = runner.invoke(main, ['create', '-v', config_path, '42', '1.0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output

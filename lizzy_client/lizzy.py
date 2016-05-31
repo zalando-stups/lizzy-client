@@ -64,7 +64,6 @@ class Lizzy:
                   new_traffic: int,
                   senza_yaml_path: str,
                   stack_version: Optional[str],
-                  application_version: Optional[str],
                   disable_rollback: bool,
                   parameters: List[str]) -> Dict[str, str]:
         """
@@ -81,9 +80,6 @@ class Lizzy:
                 'new_traffic': new_traffic,
                 'parameters': parameters,
                 'senza_yaml': senza_yaml}
-
-        if application_version:
-            data['application_version'] = application_version
 
         if stack_version:
             data['stack_version'] = stack_version
