@@ -61,9 +61,14 @@ def agent_error(e: requests.HTTPError, fatal=True):
     Prints an agent error and exits
     """
     data = e.response.json()
-    output = data['detail']  # type: str
-    lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
-    msg = '\n' + '\n'.join(lines)
+    details = data['detail']  # type: str
+
+    if details:
+        lines = ('[AGENT] {}'.format(line) for line in details.splitlines())
+        msg = '\n' + '\n'.join(lines)
+    else:
+        msg = "[AGENT] {status} {title}".format_map(data)
+
     if fatal:
         fatal_error(msg)
     else:
