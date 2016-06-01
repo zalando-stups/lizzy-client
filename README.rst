@@ -57,11 +57,13 @@ Configuration
 -------------
 Lizzy Client can be configured with environmental variables:
 
-* `LIZZY_URL` — location of Lizzy (`https://lizzy.example.com/`)
+* `LIZZY_URL` — URL of Lizzy Agent (`https://lizzy.example.com/`)
 * `LIZZY_SCOPES` — should be `uid`
 * `OAUTH2_ACCESS_TOKEN_URL` — Oauth2 Access Token Url
 * `CREDENTIALS_DIR` — berry credentials folder, using the Zalando Stups' infrastructure, and by default
   `/meta/credentials`
+
+The agent URL can also be set with the `--remote` flag
 
 
 Authentication
