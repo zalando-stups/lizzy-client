@@ -42,6 +42,7 @@ requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
 output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
                              help='Use alternative output format')
+remote_option = click.option('-r', '--remote', help='URL for Agent')
 watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
                             help='Auto update the screen every X seconds')
 
@@ -91,6 +92,7 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 
 
 @main.command()
+@remote_option
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
@@ -102,7 +104,7 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
 @click.argument('senza_parameters', nargs=-1)
 def create(definition: str, image_version: str, keep_stacks: Optional[int],
            traffic: int, verbose: bool, senza_parameters: list,
-           stack_version: str, disable_rollback: bool):
+           stack_version: str, disable_rollback: bool, remote: str):
     """Deploy a new Cloud Formation stack"""
     senza_parameters = senza_parameters or []
 
@@ -110,7 +112,9 @@ def create(definition: str, image_version: str, keep_stacks: Optional[int],
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(config.lizzy_url, access_token)
+    lizzy_url = remote or config.lizzy_url
+
+    lizzy = Lizzy(lizzy_url, access_token)
 
     with Action('Requesting new stack..') as action:
         try:
@@ -185,16 +189,19 @@ def create(definition: str, image_version: str, keep_stacks: Optional[int],
 @main.command('list')
 @click.argument('stack_ref', nargs=-1)
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
+@remote_option
 @watch_option
 @output_option
-def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
+def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
+                remote: str):
     """List Lizzy stacks"""
 
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(config.lizzy_url, access_token)
+    lizzy_url = remote or config.lizzy_url
+    lizzy = Lizzy(lizzy_url, access_token)
 
     while True:
         # TODO reimplement all later
@@ -230,13 +237,15 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str):
 @click.argument('stack_name')
 @click.argument('stack_version')
 @click.argument('percentage', type=click.IntRange(0, 100, clamp=True))
-def traffic(stack_name: str, stack_version: str, percentage: int):
+@remote_option
+def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
     '''Switch traffic'''
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(config.lizzy_url, access_token)
+    lizzy_url = remote or config.lizzy_url
+    lizzy = Lizzy(lizzy_url, access_token)
 
     with Action('Requesting traffic change..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
@@ -251,13 +260,15 @@ def traffic(stack_name: str, stack_version: str, percentage: int):
 @main.command()
 @click.argument('stack_name')
 @click.argument('stack_version')
-def delete(stack_name: str, stack_version: str):
+@remote_option
+def delete(stack_name: str, stack_version: str, remote: str):
     '''Delete a single stack'''
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
-    lizzy = Lizzy(config.lizzy_url, access_token)
+    lizzy_url = remote or config.lizzy_url
+    lizzy = Lizzy(lizzy_url, access_token)
 
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
