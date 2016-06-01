@@ -16,12 +16,13 @@ def make_header(access_token: str):
 
 class Lizzy:
     def __init__(self, base_url: str, access_token: str):
-        self.base_url = URL(base_url.rstrip('/'))
+        base_url = URL(base_url.rstrip('/'))
+        self.api_url = base_url if base_url.path == '/api' else base_url / 'api'
         self.access_token = access_token
 
     @property
     def stacks_url(self) -> URL:
-        return self.base_url / 'stacks'
+        return self.api_url / 'stacks'
 
     def delete(self, stack_id: str):
         url = self.stacks_url / stack_id
@@ -64,7 +65,6 @@ class Lizzy:
                   new_traffic: int,
                   senza_yaml_path: str,
                   stack_version: Optional[str],
-                  application_version: Optional[str],
                   disable_rollback: bool,
                   parameters: List[str]) -> Dict[str, str]:
         """
@@ -81,9 +81,6 @@ class Lizzy:
                 'new_traffic': new_traffic,
                 'parameters': parameters,
                 'senza_yaml': senza_yaml}
-
-        if application_version:
-            data['application_version'] = application_version
 
         if stack_version:
             data['stack_version'] = stack_version
