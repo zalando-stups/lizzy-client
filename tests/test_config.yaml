@@ -1,7 +1,2 @@
-lizzy-url: "https://lizzy.example/api"
-token-url: "https://auth.example/oauth2/access_token?realm=services"
-scopes: "deployer"
-user: "file_user"
-client-id: lizzy
-client-secret: 1234
-password: hunter2
+SenzaInfo:
+  - Something

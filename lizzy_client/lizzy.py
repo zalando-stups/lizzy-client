@@ -64,10 +64,9 @@ class Lizzy:
         return response.json()
 
     def new_stack(self,
-                  image_version: str,
                   keep_stacks: int,
                   new_traffic: int,
-                  senza_yaml_path: str,
+                  senza_yaml: dict,
                   stack_version: Optional[str],
                   disable_rollback: bool,
                   parameters: List[str]) -> Dict[str, str]:
@@ -76,11 +75,7 @@ class Lizzy:
         """
         header = make_header(self.access_token)
 
-        with open(senza_yaml_path) as senza_yaml_file:
-            senza_yaml = senza_yaml_file.read()
-
-        data = {'image_version': image_version,
-                'disable_rollback': disable_rollback,
+        data = {'disable_rollback': disable_rollback,  # TODO remove image_version from the agent
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'parameters': parameters,

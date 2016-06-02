@@ -11,6 +11,7 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
+from .arguments import DefinitionParamType, validate_version
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
@@ -51,6 +52,9 @@ main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
 output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
                              help='Use alternative output format')
 remote_option = click.option('-r', '--remote', help='URL for Agent')
+region_option = click.option('--region', envvar='AWS_DEFAULT_REGION',
+                             metavar='AWS_REGION_ID',
+                             help='AWS region ID (e.g. eu-west-1)')
 watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
                             help='Auto update the screen every X seconds')
 
@@ -125,21 +129,36 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 
 
 @main.command()
-@remote_option
+@click.argument('definition', type=DefinitionParamType())
+@click.argument('version', callback=validate_version)
+@click.argument('parameter', nargs=-1)
+@region_option
+@click.option('--disable-rollback', is_flag=True,
+              help='Disable Cloud Formation rollback on failure')
+# TODO: Client and Agent side
+@click.option('--dry-run', is_flag=True, help='No-op mode: show what would be created')
+# TODO: Conditional on it being easy to implement on client side
+@click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
+# TODO: Client and Agent side
+@click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
+@remote_option
 @click.option('--verbose', '-v', is_flag=True)
-@click.option('--disable-rollback', is_flag=True, help='Disable Cloud Formation rollback on failure')
-@click.argument('definition')  # TODO add definition type like senza
-@click.argument('stack-version')
-@click.argument('image_version')
-@click.argument('senza_parameters', nargs=-1)
-def create(definition: str, image_version: str, keep_stacks: Optional[int],
-           traffic: int, verbose: bool, senza_parameters: list,
-           stack_version: str, disable_rollback: bool, remote: str):
-    """Deploy a new Cloud Formation stack"""
-    senza_parameters = senza_parameters or []
+def create(definition: str, version: str,  parameter: list,
+           region: str,
+           disable_rollback: bool,
+           dry_run: bool,
+           force: bool,
+           tag: List[str],
+           keep_stacks: Optional[int],
+           traffic: int,
+           verbose: bool,
+           remote: str,
+           ):
+    """Create a new Cloud Formation stack from the given Senza definition file"""
+    parameter = parameter or []
 
     config = Configuration()
 
@@ -151,9 +170,9 @@ def create(definition: str, image_version: str, keep_stacks: Optional[int],
 
     with Action('Requesting new stack..') as action:
         try:
-            new_stack = lizzy.new_stack(image_version, keep_stacks, traffic,
-                                        definition, stack_version,
-                                        disable_rollback, senza_parameters)
+            new_stack = lizzy.new_stack(keep_stacks, traffic,
+                                        definition, version,
+                                        disable_rollback, parameter)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)

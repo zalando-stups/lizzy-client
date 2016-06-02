@@ -133,7 +133,6 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
-    runner = CliRunner()
     result = runner.invoke(main, ['create', config_path, '42', '1.0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output

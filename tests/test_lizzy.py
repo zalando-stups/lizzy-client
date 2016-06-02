@@ -102,23 +102,21 @@ def test_new_stack(monkeypatch):
     monkeypatch.setattr('requests.post', mock_post)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack = lizzy.new_stack(image_version='10',
-                            keep_stacks=2,
+    stack = lizzy.new_stack(keep_stacks=2,
                             new_traffic=42,
-                            senza_yaml_path=yaml_path,
+                            senza_yaml={'MyDefinition': 'Values'},
                             stack_version=None,
                             disable_rollback=True,
-                            parameters=[])
+                            parameters=['10'])
     stack_name = stack['stack_name']
     assert stack_name == 'lizzy-bus'
 
     header = make_header('7E5770K3N')
-    data = {'image_version': "10",
-            'keep_stacks': 2,
+    data = {'keep_stacks': 2,
             'new_traffic': 42,
-            'parameters': [],
+            'parameters': ['10'],
             'disable_rollback': True,
-            'senza_yaml': senza_yaml}
+            'senza_yaml': {'MyDefinition': 'Values'}}
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
                                       data=json.dumps(data,  sort_keys=True),
                                       json=None,
@@ -126,34 +124,31 @@ def test_new_stack(monkeypatch):
 
     mock_post.reset_mock()
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack = lizzy.new_stack(image_version='10',
-                            keep_stacks=2,
+    stack = lizzy.new_stack(keep_stacks=2,
                             new_traffic=42,
-                            senza_yaml_path=yaml_path,
+                            senza_yaml={'MyDefinition': 'Values'},
                             stack_version=None,
                             disable_rollback=False,
-                            parameters=[])
+                            parameters=['10'])
 
     header = make_header('7E5770K3N')
-    data = {'image_version': "10",
-            'keep_stacks': 2,
+    data = {'keep_stacks': 2,
             'new_traffic': 42,
-            'parameters': [],
+            'parameters': ['10'],
             'disable_rollback': False,
-            'senza_yaml': senza_yaml}
+            'senza_yaml': {'MyDefinition': 'Values'}}
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
                                       data=json.dumps(data,  sort_keys=True),
                                       json=None,
                                       verify=False)
 
     mock_post.reset_mock()
-    data_with_ver = {'image_version': "10",
-                     'keep_stacks': 2,
+    data_with_ver = {'keep_stacks': 2,
                      'new_traffic': 42,
                      'parameters': [],
-                     'senza_yaml': senza_yaml,
+                     'senza_yaml': {'MyDefinition': 'Values'},
                      'disable_rollback': False}
-    lizzy.new_stack('10', 2, 42, yaml_path, None, False, [])
+    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, None, False, [])
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_ver, sort_keys=True),
@@ -161,13 +156,12 @@ def test_new_stack(monkeypatch):
                                       verify=False)
 
     mock_post.reset_mock()
-    data_with_params = {'image_version': "10",
-                        'keep_stacks': 2,
+    data_with_params = {'keep_stacks': 2,
                         'new_traffic': 42,
                         'parameters': ['abc', 'def'],
-                        'senza_yaml': senza_yaml,
+                        'senza_yaml': {'MyDefinition': 'Values'},
                         'disable_rollback': True}
-    lizzy.new_stack('10', 2, 42, yaml_path, None, True, ['abc', 'def'])
+    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, None, True, ['abc', 'def'])
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_params, sort_keys=True),
@@ -175,14 +169,13 @@ def test_new_stack(monkeypatch):
                                       verify=False)
 
     mock_post.reset_mock()
-    data_with_stack_version = {'image_version': "10",
-                               'keep_stacks': 2,
+    data_with_stack_version = {'keep_stacks': 2,
                                'new_traffic': 42,
                                'parameters': ['abc', 'def'],
-                               'senza_yaml': senza_yaml,
+                               'senza_yaml': {'MyDefinition': 'Values'},
                                'disable_rollback': True,
                                "stack_version": "7", }
-    lizzy.new_stack('10', 2, 42, yaml_path, "7", True, ['abc', 'def'])
+    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, "7", True, ['abc', 'def'])
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data_with_stack_version, sort_keys=True),
