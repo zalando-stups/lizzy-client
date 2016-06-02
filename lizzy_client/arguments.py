@@ -40,3 +40,8 @@ def validate_version(ctx, param, value):
     if not VERSION_PATTERN.match(value):
         raise click.BadParameter('Version must satisfy regular expression pattern "[a-zA-Z0-9]+"')
     return value
+
+
+region_option = click.option('--region', envvar='AWS_DEFAULT_REGION',
+                             metavar='AWS_REGION_ID',
+                             help='AWS region ID (e.g. eu-west-1)')

@@ -11,7 +11,7 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
-from .arguments import DefinitionParamType, validate_version
+from .arguments import DefinitionParamType, validate_version, region_option
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
@@ -52,9 +52,6 @@ main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
 output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
                              help='Use alternative output format')
 remote_option = click.option('-r', '--remote', help='URL for Agent')
-region_option = click.option('--region', envvar='AWS_DEFAULT_REGION',
-                             metavar='AWS_REGION_ID',
-                             help='AWS region ID (e.g. eu-west-1)')
 watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
                             help='Auto update the screen every X seconds')
 
@@ -132,7 +129,7 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 @click.argument('definition', type=DefinitionParamType())
 @click.argument('version', callback=validate_version)
 @click.argument('parameter', nargs=-1)
-@region_option
+@region_option  # TODO: Client and Agent side
 @click.option('--disable-rollback', is_flag=True,
               help='Disable Cloud Formation rollback on failure')
 # TODO: Client and Agent side
@@ -319,17 +316,24 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 
 
 @main.command()
-@click.argument('stack_name')
-@click.argument('stack_version')
+@click.argument('stack_ref', nargs=-1)  # TODO support references on agent side
+@region_option  # TODO: Client and Agent side
+# TODO: Client and Agent side
+@click.option('--dry-run', is_flag=True, help='No-op mode: show what would be deleted')
+# TODO: Client and Agent side
+@click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
 @remote_option
-def delete(stack_name: str, stack_version: str, remote: str):
-    '''Delete a single stack'''
+def delete(stack_ref: List[str],
+           region: str, dry_run: bool, force: bool, remote: str):
+    """Delete a single Cloud Formation stack"""
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
 
     lizzy_url = remote or config.lizzy_url
     lizzy = Lizzy(lizzy_url, access_token)
+
+    stack_name, stack_version = stack_ref  # TODO remove hack
 
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
