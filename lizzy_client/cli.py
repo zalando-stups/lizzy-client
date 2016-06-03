@@ -167,15 +167,17 @@ def create(definition: dict, version: str,  parameter: list,
 
     with Action('Requesting new stack..') as action:
         try:
-            new_stack = lizzy.new_stack(keep_stacks, traffic,
-                                        definition, version,
-                                        disable_rollback, parameter,
-                                        dry_run=dry_run)
+            new_stack, output = lizzy.new_stack(keep_stacks, traffic,
+                                                definition, version,
+                                                disable_rollback, parameter,
+                                                dry_run=dry_run)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:
             agent_error(e)
+
+    print(output)
 
     info('Stack ID: {}'.format(stack_id))
 

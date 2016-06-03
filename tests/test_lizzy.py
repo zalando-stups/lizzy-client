@@ -107,7 +107,8 @@ def test_new_stack(monkeypatch):
                             senza_yaml={'MyDefinition': 'Values'},
                             stack_version=None,
                             disable_rollback=True,
-                            parameters=['10'])
+                            parameters=['10'],
+                            dry_run=False)
     stack_name = stack['stack_name']
     assert stack_name == 'lizzy-bus'
 

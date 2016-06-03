@@ -23,6 +23,16 @@ class Lizzy:
         self.api_url = base_url if base_url.path == '/api' else base_url / 'api'
         self.access_token = access_token
 
+    @classmethod
+    def get_output(cls, response: requests.Response) -> str:
+        """
+        Extracts the senza cli output from the response
+        """
+        output = response.headers['X-Lizzy-Output']  # type: str
+        output = output.replace('\\n', '\n')  # unescape new lines
+        lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
+        return '\n'.join(lines)
+
     @property
     def stacks_url(self) -> URL:
         return self.api_url / 'stacks'
@@ -71,7 +81,7 @@ class Lizzy:
                   stack_version: str,
                   disable_rollback: bool,
                   parameters: List[str],
-                  dry_run: bool) -> Dict[str, str]:  # TODO put arguments in a more logical order
+                  dry_run: bool) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
         """
         Requests a new stack.
         """
@@ -89,7 +99,7 @@ class Lizzy:
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
-        return request.json()
+        return request.json(), self.get_output(request)
 
     def traffic(self, stack_id: str, percentage: int):
         url = self.stacks_url / stack_id

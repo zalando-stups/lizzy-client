@@ -31,7 +31,7 @@ class FakeResponse(requests.Response):
         self.status_code = status_code
         self._content = text
         self.raise_for_status = MagicMock()
-        self.headers = {}
+        self.headers = {'X-Lizzy-Output': 'Output'}
 
     def json(self):
         return json.loads(self.content)
