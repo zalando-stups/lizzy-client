@@ -3,6 +3,7 @@ import time
 from typing import Dict, List, Optional
 
 import requests
+import yaml
 from clickclick import warning
 from urlpath import URL
 
@@ -67,22 +68,21 @@ class Lizzy:
                   keep_stacks: int,
                   new_traffic: int,
                   senza_yaml: dict,
-                  stack_version: Optional[str],
+                  stack_version: str,
                   disable_rollback: bool,
-                  parameters: List[str]) -> Dict[str, str]:
+                  parameters: List[str],
+                  dry_run: bool) -> Dict[str, str]:  # TODO put arguments in a more logical order
         """
         Requests a new stack.
         """
         header = make_header(self.access_token)
-
-        data = {'disable_rollback': disable_rollback,  # TODO remove image_version from the agent
+        data = {'senza_yaml': yaml.dump(senza_yaml),
+                'stack_version': stack_version,
+                'disable_rollback': disable_rollback,
+                'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
-                'parameters': parameters,
-                'senza_yaml': senza_yaml}
-
-        if stack_version:
-            data['stack_version'] = stack_version
+                'parameters': parameters}
 
         request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')

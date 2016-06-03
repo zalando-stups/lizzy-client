@@ -11,7 +11,7 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
-from .arguments import DefinitionParamType, validate_version, region_option
+from .arguments import DefinitionParamType, region_option, validate_version
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
@@ -143,7 +143,7 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
               help="Percentage of traffic for the new stack")
 @remote_option
 @click.option('--verbose', '-v', is_flag=True)
-def create(definition: str, version: str,  parameter: list,
+def create(definition: dict, version: str,  parameter: list,
            region: str,
            disable_rollback: bool,
            dry_run: bool,
@@ -169,7 +169,8 @@ def create(definition: str, version: str,  parameter: list,
         try:
             new_stack = lizzy.new_stack(keep_stacks, traffic,
                                         definition, version,
-                                        disable_rollback, parameter)
+                                        disable_rollback, parameter,
+                                        dry_run=dry_run)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)
@@ -177,6 +178,10 @@ def create(definition: str, version: str,  parameter: list,
             agent_error(e)
 
     info('Stack ID: {}'.format(stack_id))
+
+    if dry_run:
+        info("Post deployment steps skipped")
+        exit(0)
 
     with Action('Waiting for new stack...') as action:
         if verbose:
