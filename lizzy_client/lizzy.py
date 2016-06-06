@@ -82,7 +82,8 @@ class Lizzy:
                   disable_rollback: bool,
                   parameters: List[str],
                   region: Optional[str],
-                  dry_run: bool) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
+                  dry_run: bool,
+                  tags: List[str]) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
         """
         Requests a new stack.
         """
@@ -94,7 +95,8 @@ class Lizzy:
                 'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
-                'parameters': parameters}
+                'parameters': parameters,
+                'tags': tags}
 
         request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')

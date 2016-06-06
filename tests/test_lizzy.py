@@ -99,12 +99,12 @@ def test_traffic(monkeypatch):
         ("another_version", ['10'], "eu-central-1", False, True, False, [], 2,
          42),
         ("yet_another_version", [], None, False, False, True, [], 42, 7),
-        ("43", ['abc', 'def'], None, True, False, True, [], 42, 7),
+        ("43", ['abc', 'def'], None, True, False, True, ['tag1=value1'], 42, 7),
         ("newer_version", [], None, True, True, False, [], 2, 42),
     ])
-def test_new_stack2(monkeypatch,
-                    version, parameters, region, disable_rollback, dry_run,
-                    force, tags, keep_stacks, new_traffic):
+def test_new_stack(monkeypatch,
+                   version, parameters, region, disable_rollback, dry_run,
+                   force, tags, keep_stacks, new_traffic):
     test_dir = os.path.dirname(__file__)
     yaml_path = os.path.join(test_dir,
                              'test_config.yaml')  # we can use any file for this test
@@ -122,7 +122,8 @@ def test_new_stack2(monkeypatch,
                                     disable_rollback=disable_rollback,
                                     parameters=parameters,
                                     dry_run=dry_run,
-                                    region=region,)
+                                    region=region,
+                                    tags=tags)
     stack_name = stack['stack_name']
     assert stack_name == 'lizzy-bus'
 
@@ -134,7 +135,8 @@ def test_new_stack2(monkeypatch,
             'dry_run': dry_run,
             'region': region,
             'senza_yaml': "{MyDefinition: Values}\n",
-            'stack_version': version}
+            'stack_version': version,
+            'tags': tags}
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       data=json.dumps(data, sort_keys=True),

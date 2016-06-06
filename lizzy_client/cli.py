@@ -135,7 +135,6 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be created')
 # TODO: Conditional on it being easy to implement on client side
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
-# TODO: Client and Agent side
 @click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
@@ -170,7 +169,8 @@ def create(definition: dict, version: str,  parameter: list,
                                                 definition, version,
                                                 disable_rollback, parameter,
                                                 region=region,
-                                                dry_run=dry_run)
+                                                dry_run=dry_run,
+                                                tags=tag)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)
