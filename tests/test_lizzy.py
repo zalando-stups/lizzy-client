@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 from requests import Response
+import pytest
 import json
 import os
 
@@ -21,7 +22,7 @@ class FakeResponse(Response):
         self.status_code = status_code
         self._content = text
         self.raise_for_status = MagicMock()
-        self.headers = {}
+        self.headers = {'X-Lizzy-Output': ''}
 
     def json(self):
         return json.loads(self.content)
@@ -91,95 +92,52 @@ def test_traffic(monkeypatch):
                                        verify=False)
 
 
-def test_new_stack(monkeypatch):
+@pytest.mark.parametrize(
+    "version, parameters, region, disable_rollback, dry_run, force, tags, keep_stacks, new_traffic",
+    [
+        ("new_version", ['10'], None, True, False, False, [], 2, 42),
+        ("another_version", ['10'], "eu-central-1", False, True, False, [], 2,
+         42),
+        ("yet_another_version", [], None, False, False, True, [], 42, 7),
+        ("43", ['abc', 'def'], None, True, False, True, [], 42, 7),
+        ("newer_version", [], None, True, True, False, [], 2, 42),
+    ])
+def test_new_stack2(monkeypatch,
+                    version, parameters, region, disable_rollback, dry_run,
+                    force, tags, keep_stacks, new_traffic):
     test_dir = os.path.dirname(__file__)
-    yaml_path = os.path.join(test_dir, 'test_config.yaml')  # we can use any file for this test
+    yaml_path = os.path.join(test_dir,
+                             'test_config.yaml')  # we can use any file for this test
     with open(yaml_path) as yaml_file:
         senza_yaml = yaml_file.read()
 
     mock_post = MagicMock()
     mock_post.return_value = FakeResponse(200, STACK1)
     monkeypatch.setattr('requests.post', mock_post)
-
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack = lizzy.new_stack(keep_stacks=2,
-                            new_traffic=42,
-                            senza_yaml={'MyDefinition': 'Values'},
-                            stack_version=None,
-                            disable_rollback=True,
-                            parameters=['10'],
-                            dry_run=False)
+    stack, output = lizzy.new_stack(keep_stacks=keep_stacks,
+                                    new_traffic=new_traffic,
+                                    senza_yaml={'MyDefinition': 'Values'},
+                                    stack_version=version,
+                                    disable_rollback=disable_rollback,
+                                    parameters=parameters,
+                                    dry_run=dry_run,
+                                    region=region,)
     stack_name = stack['stack_name']
     assert stack_name == 'lizzy-bus'
 
     header = make_header('7E5770K3N')
-    data = {'keep_stacks': 2,
-            'new_traffic': 42,
-            'parameters': ['10'],
-            'disable_rollback': True,
-            'senza_yaml': {'MyDefinition': 'Values'}}
-    mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
-                                      data=json.dumps(data,  sort_keys=True),
-                                      json=None,
-                                      verify=False)
-
-    mock_post.reset_mock()
-    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    stack = lizzy.new_stack(keep_stacks=2,
-                            new_traffic=42,
-                            senza_yaml={'MyDefinition': 'Values'},
-                            stack_version=None,
-                            disable_rollback=False,
-                            parameters=['10'])
-
-    header = make_header('7E5770K3N')
-    data = {'keep_stacks': 2,
-            'new_traffic': 42,
-            'parameters': ['10'],
-            'disable_rollback': False,
-            'senza_yaml': {'MyDefinition': 'Values'}}
-    mock_post.assert_called_once_with('https://lizzy.example/api/stacks', headers=header,
-                                      data=json.dumps(data,  sort_keys=True),
-                                      json=None,
-                                      verify=False)
-
-    mock_post.reset_mock()
-    data_with_ver = {'keep_stacks': 2,
-                     'new_traffic': 42,
-                     'parameters': [],
-                     'senza_yaml': {'MyDefinition': 'Values'},
-                     'disable_rollback': False}
-    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, None, False, [])
+    data = {'keep_stacks': keep_stacks,
+            'new_traffic': new_traffic,
+            'parameters': parameters,
+            'disable_rollback': disable_rollback,
+            'dry_run': dry_run,
+            'region': region,
+            'senza_yaml': "{MyDefinition: Values}\n",
+            'stack_version': version}
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
-                                      data=json.dumps(data_with_ver, sort_keys=True),
-                                      json=None,
-                                      verify=False)
-
-    mock_post.reset_mock()
-    data_with_params = {'keep_stacks': 2,
-                        'new_traffic': 42,
-                        'parameters': ['abc', 'def'],
-                        'senza_yaml': {'MyDefinition': 'Values'},
-                        'disable_rollback': True}
-    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, None, True, ['abc', 'def'])
-    mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
-                                      headers=header,
-                                      data=json.dumps(data_with_params, sort_keys=True),
-                                      json=None,
-                                      verify=False)
-
-    mock_post.reset_mock()
-    data_with_stack_version = {'keep_stacks': 2,
-                               'new_traffic': 42,
-                               'parameters': ['abc', 'def'],
-                               'senza_yaml': {'MyDefinition': 'Values'},
-                               'disable_rollback': True,
-                               "stack_version": "7", }
-    lizzy.new_stack(2, 42, {'MyDefinition': 'Values'}, "7", True, ['abc', 'def'])
-    mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
-                                      headers=header,
-                                      data=json.dumps(data_with_stack_version, sort_keys=True),
+                                      data=json.dumps(data, sort_keys=True),
                                       json=None,
                                       verify=False)
 

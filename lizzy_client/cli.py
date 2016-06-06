@@ -129,10 +129,9 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 @click.argument('definition', type=DefinitionParamType())
 @click.argument('version', callback=validate_version)
 @click.argument('parameter', nargs=-1)
-@region_option  # TODO: Client and Agent side
+@region_option
 @click.option('--disable-rollback', is_flag=True,
               help='Disable Cloud Formation rollback on failure')
-# TODO: Client and Agent side
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be created')
 # TODO: Conditional on it being easy to implement on client side
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
@@ -170,6 +169,7 @@ def create(definition: dict, version: str,  parameter: list,
             new_stack, output = lizzy.new_stack(keep_stacks, traffic,
                                                 definition, version,
                                                 disable_rollback, parameter,
+                                                region=region,
                                                 dry_run=dry_run)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:

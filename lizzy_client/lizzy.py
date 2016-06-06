@@ -81,6 +81,7 @@ class Lizzy:
                   stack_version: str,
                   disable_rollback: bool,
                   parameters: List[str],
+                  region: Optional[str],
                   dry_run: bool) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
         """
         Requests a new stack.
@@ -88,6 +89,7 @@ class Lizzy:
         header = make_header(self.access_token)
         data = {'senza_yaml': yaml.dump(senza_yaml),
                 'stack_version': stack_version,
+                'region': region,
                 'disable_rollback': disable_rollback,
                 'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
