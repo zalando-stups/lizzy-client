@@ -325,7 +325,6 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 @main.command()
 @click.argument('stack_ref', nargs=-1)  # TODO support references on agent side
 @region_option  # TODO: Client and Agent side
-# TODO: Client and Agent side
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be deleted')
 # TODO: Client and Agent side
 @click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
@@ -345,7 +344,7 @@ def delete(stack_ref: List[str],
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
         try:
-            lizzy.delete(stack_id)
+            lizzy.delete(stack_id, dry_run=dry_run)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:

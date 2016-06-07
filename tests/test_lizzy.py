@@ -39,15 +39,25 @@ def test_properties():
     assert str(Lizzy('https://lizzy-2.example', '7E5770K3N').stacks_url) == 'https://lizzy-2.example/api/stacks'
 
 
-def test_delete(monkeypatch):
+@pytest.mark.parametrize(
+    "stack_id, dry_run",
+    [
+        ("stack_id", False),
+        ("574CC", True),
+    ])
+def test_delete(monkeypatch, stack_id, dry_run):
     mock_delete = MagicMock()
     monkeypatch.setattr('requests.delete', mock_delete)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    lizzy.delete('574CC')
+    lizzy.delete(stack_id, dry_run=dry_run)
 
     header = make_header('7E5770K3N')
-    mock_delete.assert_called_once_with('https://lizzy.example/api/stacks/574CC', headers=header, verify=False)
+    url = 'https://lizzy.example/api/stacks/'+stack_id
+    mock_delete.assert_called_once_with(url,
+                                        json={"dry_run": dry_run},
+                                        headers=header,
+                                        verify=False)
 
 
 def test_get_stack(monkeypatch):
@@ -88,7 +98,9 @@ def test_traffic(monkeypatch):
 
     header = make_header('7E5770K3N')
     mock_patch.assert_called_once_with('https://lizzy.example/api/stacks/574CC',
-                                       headers=header, data='{"new_traffic": 42}',
+                                       headers=header,
+                                       data=None,
+                                       json={"new_traffic": 42},
                                        verify=False)
 
 
@@ -139,8 +151,8 @@ def test_new_stack(monkeypatch,
             'tags': tags}
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
-                                      data=json.dumps(data, sort_keys=True),
-                                      json=None,
+                                      json=data,
+                                      data=None,
                                       verify=False)
 
 

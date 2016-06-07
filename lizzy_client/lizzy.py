@@ -37,11 +37,12 @@ class Lizzy:
     def stacks_url(self) -> URL:
         return self.api_url / 'stacks'
 
-    def delete(self, stack_id: str):
+    def delete(self, stack_id: str, dry_run: bool=False):
         url = self.stacks_url / stack_id
 
         header = make_header(self.access_token)
-        request = url.delete(headers=header, verify=False)
+        data = {"dry_run": dry_run}
+        request = url.delete(headers=header, json=data, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
@@ -98,7 +99,7 @@ class Lizzy:
                 'parameters': parameters,
                 'tags': tags}
 
-        request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
+        request = self.stacks_url.post(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
@@ -110,7 +111,7 @@ class Lizzy:
         data = {"new_traffic": percentage}
 
         header = make_header(self.access_token)
-        request = url.patch(data=json.dumps(data), headers=header, verify=False)
+        request = url.patch(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
