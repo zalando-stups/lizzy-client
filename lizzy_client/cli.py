@@ -15,6 +15,7 @@ from .arguments import DefinitionParamType, region_option, validate_version
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
+from .utils import get_stack_refs
 from .version import VERSION
 
 STYLES = {
@@ -326,12 +327,11 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 @click.argument('stack_ref', nargs=-1)  # TODO support references on agent side
 @region_option
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be deleted')
-# TODO: Client and Agent side
 @click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
 @remote_option
 def delete(stack_ref: List[str],
            region: str, dry_run: bool, force: bool, remote: str):
-    """Delete a single Cloud Formation stack"""
+    """Delete Cloud Formation stacks"""
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
@@ -339,16 +339,27 @@ def delete(stack_ref: List[str],
     lizzy_url = remote or config.lizzy_url
     lizzy = Lizzy(lizzy_url, access_token)
 
-    stack_name, stack_version = stack_ref  # TODO remove hack
+    stack_refs = get_stack_refs(stack_ref)
 
-    with Action('Requesting stack deletion..'):
-        stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        try:
-            output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
-        except requests.ConnectionError as e:
-            connection_error(e)
-        except requests.HTTPError as e:
-            agent_error(e)
+    all_with_version = all(stack.version is not None
+                           for stack in stack_refs)
+
+    # TODO unit test this
+    #  this is misleading but it's the current behaviour of senza
+    if (not all_with_version and len(stack_refs) > 1 and not dry_run and not force):
+        fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
+                    'Please use the "--force" flag if you really want to delete multiple stacks.')
+
+    # TODO unit test more than one
+    for stack in stack_refs:
+        stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
+        with Action('Requesting stack deletion..'):
+            try:
+                output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
+            except requests.ConnectionError as e:
+                connection_error(e)
+            except requests.HTTPError as e:
+                agent_error(e)
 
     print(output)
 
