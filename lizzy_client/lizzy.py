@@ -47,6 +47,7 @@ class Lizzy:
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
+        return self.get_output(request)
 
     def get_stack(self, stack_id: str) -> dict:
         header = make_header(self.access_token)

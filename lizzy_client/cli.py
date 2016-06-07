@@ -344,11 +344,13 @@ def delete(stack_ref: List[str],
     with Action('Requesting stack deletion..'):
         stack_id = '{stack_name}-{stack_version}'.format_map(locals())
         try:
-            lizzy.delete(stack_id, region=region, dry_run=dry_run)
+            output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:
             agent_error(e)
+
+    print(output)
 
 
 @main.command()
