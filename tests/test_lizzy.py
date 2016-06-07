@@ -40,22 +40,25 @@ def test_properties():
 
 
 @pytest.mark.parametrize(
-    "stack_id, dry_run",
+    "stack_id, region, dry_run",
     [
-        ("stack_id", False),
-        ("574CC", True),
+        ("stack_id", 'eu-central-1', False),
+        ("574CC", 'eu-central-1', True),
+        ("stack_id", 'eu-west-1', False),
+        ("574CC", 'eu-west-1', True),
     ])
-def test_delete(monkeypatch, stack_id, dry_run):
+def test_delete(monkeypatch, stack_id, region, dry_run):
     mock_delete = MagicMock()
     monkeypatch.setattr('requests.delete', mock_delete)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
-    lizzy.delete(stack_id, dry_run=dry_run)
+    lizzy.delete(stack_id, region=region, dry_run=dry_run)
 
     header = make_header('7E5770K3N')
     url = 'https://lizzy.example/api/stacks/'+stack_id
+    expected_data = {"region": region, "dry_run": dry_run}
     mock_delete.assert_called_once_with(url,
-                                        json={"dry_run": dry_run},
+                                        json=expected_data,
                                         headers=header,
                                         verify=False)
 

@@ -193,10 +193,27 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert result.exit_code == 1
 
 
-def test_delete(mock_get_token, mock_fake_lizzy):
+@pytest.mark.parametrize(
+    "stack_name, stack_version, region, dry_run",
+    [
+        ("stack_id", "1", 'eu-central-1', False),
+        ("574CC", "42", 'eu-central-1', True),
+        ("stack_id", "7", 'eu-west-1', False),
+        ("574CC", "2", 'eu-west-1', True),
+    ])
+def test_delete(mock_get_token, mock_fake_lizzy,
+                stack_name, stack_version, region, dry_run):
     runner = CliRunner()
-    result = runner.invoke(main, ['delete', 'lizzy-test', '1.0'], env=FAKE_ENV, catch_exceptions=False)
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + [stack_name, stack_version],
+                           env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting stack deletion.. OK' in result.output
+    stack_id = "{}-{}".format(stack_name, stack_version)
+    mock_fake_lizzy.delete.assert_called_once_with(stack_id, dry_run=dry_run, region=region)
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):
