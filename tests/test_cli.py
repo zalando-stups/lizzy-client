@@ -211,9 +211,30 @@ def test_delete(mock_get_token, mock_fake_lizzy,
                            + dry_run_flag
                            + [stack_name, stack_version],
                            env=FAKE_ENV, catch_exceptions=False)
-    assert 'Requesting stack deletion.. OK' in result.output
+    assert "Requesting stack '{}-{}' deletion.. OK".format(stack_name, stack_version) in result.output
     stack_id = "{}-{}".format(stack_name, stack_version)
     mock_fake_lizzy.delete.assert_called_once_with(stack_id, dry_run=dry_run, region=region)
+
+
+@pytest.mark.parametrize(
+    "stack_refs, region, dry_run, expected_calls",
+    [
+        (["stack_id", "1"], 'eu-central-1', False, 1),
+        (['foobar-stack', 'v1', 'v2', 'v99'], 'eu-central-1', False, 3),
+        (["stack_id", "1"], 'eu-central-1', True, 1),
+        (['foobar-stack', 'v1', 'v2', 'v99'], 'eu-central-1', True, 3)
+    ])
+def test_delete_multiple(mock_get_token, mock_fake_lizzy,
+                         stack_refs, region, dry_run, expected_calls):
+    runner = CliRunner()
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + stack_refs,
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert mock_fake_lizzy.delete.call_count == expected_calls
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):

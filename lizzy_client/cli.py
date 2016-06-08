@@ -324,7 +324,7 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 
 
 @main.command()
-@click.argument('stack_ref', nargs=-1)  # TODO support references on agent side
+@click.argument('stack_ref', nargs=-1)
 @region_option
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be deleted')
 @click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
@@ -350,10 +350,9 @@ def delete(stack_ref: List[str],
         fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
                     'Please use the "--force" flag if you really want to delete multiple stacks.')
 
-    # TODO unit test more than one
     for stack in stack_refs:
         stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
-        with Action('Requesting stack deletion..'):
+        with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
             try:
                 output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
             except requests.ConnectionError as e:

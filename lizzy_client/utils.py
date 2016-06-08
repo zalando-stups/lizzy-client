@@ -8,17 +8,7 @@ StackReference = namedtuple('StackReference', 'name version')
 
 def get_stack_refs(refs: list):  # copy pasted from Senza
     """
-    >>> get_stack_refs(['foobar-stack'])
-    [StackReference(name='foobar-stack', version=None)]
-
-    >>> get_stack_refs(['foobar-stack', '1'])
-    [StackReference(name='foobar-stack', version='1')]
-
-    >>> get_stack_refs(['foobar-stack', '1', 'other-stack'])
-    [StackReference(name='foobar-stack', version='1'), StackReference(name='other-stack', version=None)]
-    >>> get_stack_refs(['foobar-stack', 'v1', 'v2', 'v99', 'other-stack'])
-    [StackReference(name='foobar-stack', version='v1'), StackReference(name='foobar-stack', version='v2'), \
-StackReference(name='foobar-stack', version='v99'), StackReference(name='other-stack', version=None)]
+    Returns a list of stack references with name and version.
     """
     refs = list(refs)
     refs.reverse()
