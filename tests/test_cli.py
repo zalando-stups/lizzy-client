@@ -7,6 +7,7 @@ from urllib.parse import quote
 
 import pytest
 import requests
+from click import UsageError
 from click.testing import CliRunner
 from lizzy_client.cli import fetch_token, main, parse_stack_refs
 from lizzy_client.lizzy import Lizzy
@@ -251,7 +252,7 @@ def test_list(mock_get_token, mock_lizzy_get):
     runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1'], env=FAKE_ENV)
     # latest call in the mock
     url_called = mock_lizzy_get.call_args[0][0]
-    assert URL(url_called).query == 'stack_reference=stack1'
+    assert URL(url_called).query == 'references=stack1'
 
     with tempfile.NamedTemporaryFile() as senza_file:
         senza_file.write(textwrap.dedent('''
@@ -264,7 +265,7 @@ def test_list(mock_get_token, mock_lizzy_get):
         runner.invoke(main, ['list', senza_file.name, 'secstack'], env=FAKE_ENV)
 
     url_called = mock_lizzy_get.call_args[0][0]
-    assert URL(url_called).query == 'stack_reference={}'.format(quote('insiderstack,secstack'))
+    assert URL(url_called).query == 'references={}'.format(quote('insiderstack,secstack'))
 
     mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404,
                                                                           '{"detail": "Detailed Error"}'))
@@ -287,3 +288,29 @@ def test_parse_arguments():
 
         stack_names = parse_stack_refs(['foobar', senza_file.name])
         assert stack_names == ['foobar', 'insidefile']
+
+    # use invalid senza definition as arguments
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write(textwrap.dedent('''
+        NotValid: impossible
+        ''').encode())
+        senza_file.flush()
+
+        with pytest.raises(UsageError) as error:
+            parse_stack_refs([senza_file.name])
+
+        assert error.value.message.startswith('Invalid senza definition')
+
+    # use not valid YAML file as input
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write('{{INVALID}}:file'.encode())
+        senza_file.flush()
+
+        with pytest.raises(UsageError) as error:
+            parse_stack_refs([senza_file.name])
+
+        assert error.value.message.startswith('Invalid senza definition')
+
+    # use directory as input
+    tmp_dir_path = tempfile.mkdtemp()
+    assert tmp_dir_path in parse_stack_refs([tmp_dir_path])

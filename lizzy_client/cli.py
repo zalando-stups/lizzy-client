@@ -1,3 +1,4 @@
+import os.path
 import time
 from typing import List, Optional
 
@@ -8,6 +9,7 @@ import yaml
 from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
                         info, print_table)
 from tokens import InvalidCredentialsError
+from yaml.error import YAMLError
 
 from .configuration import Configuration
 from .lizzy import Lizzy
@@ -109,13 +111,15 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
     references.reverse()
     while references:
         current = references.pop()
-        try:
-            with open(current) as fd:
-                data = yaml.safe_load(fd)
-            current = data['SenzaInfo']['StackName']
-        except (OSError, IOError):
-            # just use current as inline argument
-            pass
+        # current that might be a file
+        file_path = os.path.abspath(current)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            try:
+                with open(file_path) as fd:
+                    data = yaml.safe_load(fd)
+                current = data['SenzaInfo']['StackName']
+            except (KeyError, TypeError, YAMLError):
+                raise click.UsageError('Invalid senza definition {}'.format(current))
         stack_names.append(current)
     return stack_names
 
