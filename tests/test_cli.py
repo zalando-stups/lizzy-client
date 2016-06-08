@@ -237,6 +237,37 @@ def test_delete_multiple(mock_get_token, mock_fake_lizzy,
     assert mock_fake_lizzy.delete.call_count == expected_calls
 
 
+@pytest.mark.parametrize(
+    "stack_refs, region, dry_run, expected_calls",
+    [
+        (["stack_id"], 'eu-central-1', False, 1),
+        (['foobar-stack', '1', 'other-stack'], 'eu-central-1', False, 2),
+    ])
+def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
+                               stack_refs, region, dry_run, expected_calls):
+    runner = CliRunner()
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + stack_refs,
+                           env=FAKE_ENV, catch_exceptions=True)
+    assert 'Please use the "--force" flag if you really want to delete multiple stacks.' in result.output
+    #
+    result_force = runner.invoke(main,
+                                 ['delete']
+                                 + ['--region', region]
+                                 + ['--force']
+                                 + dry_run_flag
+                                 + stack_refs,
+                                 env=FAKE_ENV, catch_exceptions=True)
+
+    assert ('Please use the "--force" flag if you really want to delete multiple stacks.'
+            not in result_force.output)
+    assert mock_fake_lizzy.delete.call_count == expected_calls
+
+
 def test_traffic(mock_get_token, mock_fake_lizzy):
     runner = CliRunner()
     result = runner.invoke(main, ['traffic', 'lizzy-test', '1.0', '90'], env=FAKE_ENV, catch_exceptions=False)

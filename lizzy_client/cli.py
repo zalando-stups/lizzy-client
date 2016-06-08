@@ -346,12 +346,19 @@ def delete(stack_ref: List[str],
 
     # TODO unit test this
     #  this is misleading but it's the current behaviour of senza
-    if (not all_with_version and len(stack_refs) > 1 and not dry_run and not force):
+    # TODO Lizzy list (stack_refs) to see if it actually matches more than one stack
+    # to match senza behaviour
+    if (not all_with_version and not dry_run and not force):
         fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
                     'Please use the "--force" flag if you really want to delete multiple stacks.')
 
+    # TODO pass force
+
     for stack in stack_refs:
-        stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
+        if stack.version is not None:
+            stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
+        else:
+            stack_id = stack.name
         with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
             try:
                 output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
