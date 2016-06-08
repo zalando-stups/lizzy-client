@@ -1,10 +1,12 @@
-from typing import Optional, List, Dict
+import json
+import time
+from typing import Dict, List, Optional
+
+import requests
 from clickclick import warning
 from urlpath import URL
+
 from .version import VERSION
-import json
-import requests
-import time
 
 
 def make_header(access_token: str):
@@ -45,19 +47,21 @@ class Lizzy:
         return request.json()
 
     def get_stacks(self, stack_reference: Optional[List[str]]=None) -> list:
-        header = make_header(self.access_token)
-        request = self.stacks_url.get(headers=header, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
+        fetch_stacks_url = self.stacks_url
+        if stack_reference:
+            fetch_stacks_url = fetch_stacks_url.with_query({
+                'stack_reference': ','.join(stack_reference)
+            })
+
+        response = fetch_stacks_url.get(headers=make_header(self.access_token),
+                                        verify=False)
+
+        lizzy_version = response.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
-        request.raise_for_status()
-        stacks = request.json()
-        # TODO implement this and all in the server side
-        if stack_reference:
-            stacks = [stack
-                      for stack in stacks
-                      if stack['stack_name'] in stack_reference]
-        return stacks
+
+        response.raise_for_status()
+        return response.json()
 
     def new_stack(self,
                   image_version: str,

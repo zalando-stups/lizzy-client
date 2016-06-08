@@ -1,13 +1,17 @@
-from clickclick import Action, OutputFormat, print_table, info, fatal_error, AliasedGroup, error
-from tokens import InvalidCredentialsError
-from typing import Optional, List
+import time
+from typing import List, Optional
+
 import click
 import dateutil.parser
 import requests
-import time
+import yaml
+from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
+                        info, print_table)
+from tokens import InvalidCredentialsError
+
+from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
-from .configuration import Configuration
 from .version import VERSION
 
 STYLES = {
@@ -22,7 +26,8 @@ STYLES = {
     'ROLLBACK_IN_PROGRESS': {'fg': 'red', 'bold': True},
     'IN_SERVICE': {'fg': 'green'},
     'OUT_OF_SERVICE': {'fg': 'red'},
-    'UPDATE_COMPLETE': {'fg': 'green'}, }
+    'UPDATE_COMPLETE': {'fg': 'green'}
+}
 
 TITLES = {
     'creation_time': 'Created',
@@ -35,7 +40,8 @@ TITLES = {
     'public_ip': 'Public IP',
     'resource_id': 'Resource ID',
     'instance_id': 'Instance ID',
-    'version': 'Ver.'}
+    'version': 'Ver.'
+}
 
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
@@ -89,6 +95,29 @@ def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TO
         except InvalidCredentialsError as e:
             action.fatal_error(e)
     return access_token
+
+
+def parse_stack_refs(stack_references: List[str]) -> List[str]:
+    '''
+    Check if items included in `stack_references` are Senza definition
+    file paths or stack name reference. If Senza definition file path,
+    substitute the definition file path by the stack name in the same
+    position on the list.
+    '''
+    stack_names = []
+    references = list(stack_references)
+    references.reverse()
+    while references:
+        current = references.pop()
+        try:
+            with open(current) as fd:
+                data = yaml.safe_load(fd)
+            current = data['SenzaInfo']['StackName']
+        except (OSError, IOError):
+            # just use current as inline argument
+            pass
+        stack_names.append(current)
+    return stack_names
 
 
 @main.command()
@@ -198,15 +227,24 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
 
     config = Configuration()
 
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
+    try:
+        token_url = config.token_url
+    except AttributeError:
+        fatal_error('Environment variable OAUTH2_ACCESS_TOKEN_URL is not set!')
+
+    scopes = config.scopes
+    credentials_dir = config.credentials_dir
+
+    access_token = fetch_token(token_url, scopes, credentials_dir)
 
     lizzy_url = remote or config.lizzy_url
     lizzy = Lizzy(lizzy_url, access_token)
+    stack_references = parse_stack_refs(stack_ref)
 
     while True:
         # TODO reimplement all later
         try:
-            stacks = lizzy.get_stacks(stack_ref)
+            stacks = lizzy.get_stacks(stack_references)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:
