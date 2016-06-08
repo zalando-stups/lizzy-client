@@ -118,7 +118,7 @@ class Lizzy:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         try:
             request.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException:  # pragma: no cover
             warning('Data Json:')
             print(json.dumps(data, indent=4))
             raise

@@ -7,7 +7,7 @@ import dateutil.parser
 import requests
 import yaml
 from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
-                        info, print_table)
+                        info, print_table, warning)
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
@@ -134,7 +134,6 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 @click.option('--disable-rollback', is_flag=True,
               help='Disable Cloud Formation rollback on failure')
 @click.option('--dry-run', is_flag=True, help='No-op mode: show what would be created')
-# TODO: Conditional on it being easy to implement on client side
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
 @click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
@@ -164,6 +163,12 @@ def create(definition: dict, version: str,  parameter: list,
 
     lizzy = Lizzy(lizzy_url, access_token)
 
+    if not force:  # pragma: no cover
+        # supporting artifact checking would imply copying a large amount of code
+        # from senza, so it should be considered out of scope until senza
+        # and lizzy client are merged
+        warning("Artifact checking is still not supported by lizzy-client.")
+
     with Action('Requesting new stack..') as action:
         try:
             new_stack, output = lizzy.new_stack(keep_stacks, traffic,
@@ -173,9 +178,9 @@ def create(definition: dict, version: str,  parameter: list,
                                                 dry_run=dry_run,
                                                 tags=tag)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
-        except requests.ConnectionError as e:
+        except requests.ConnectionError as e:  # pragma: no cover
             connection_error(e)
-        except requests.HTTPError as e:
+        except requests.HTTPError as e:  # pragma: no cover
             agent_error(e)
 
     print(output)
@@ -210,9 +215,9 @@ def create(definition: dict, version: str,  parameter: list,
         with Action('Requesting traffic change..'):
             try:
                 lizzy.traffic(stack_id, traffic)
-            except requests.ConnectionError as e:
+            except requests.ConnectionError as e:  # pragma: no cover
                 connection_error(e, fatal=False)
-            except requests.HTTPError as e:
+            except requests.HTTPError as e:  # pragma: no cover
                 agent_error(e, fatal=False)
 
     # TODO unit test this
@@ -220,10 +225,10 @@ def create(definition: dict, version: str,  parameter: list,
         versions_to_keep = keep_stacks + 1
         try:
             all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-        except requests.ConnectionError as e:
+        except requests.ConnectionError as e:  # pragma: no cover
             connection_error(e, fatal=False)
             error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
-        except requests.HTTPError as e:
+        except requests.HTTPError as e:  # pragma: no cover
             agent_error(e, fatal=False)
             error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
         else:
@@ -237,9 +242,9 @@ def create(definition: dict, version: str,  parameter: list,
                     click.echo(' {}'.format(old_stack_id))
                     try:
                         lizzy.delete(old_stack_id)
-                    except requests.ConnectionError as e:
+                    except requests.ConnectionError as e:  # pragma: no cover
                         connection_error(e, fatal=False)
-                    except requests.HTTPError as e:
+                    except requests.HTTPError as e:  # pragma: no cover
                         agent_error(e, fatal=False)
 
 
@@ -362,9 +367,9 @@ def delete(stack_ref: List[str],
         with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
             try:
                 output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
-            except requests.ConnectionError as e:
+            except requests.ConnectionError as e:  # pragma: no cover
                 connection_error(e)
-            except requests.HTTPError as e:
+            except requests.HTTPError as e:  # pragma: no cover
                 agent_error(e)
 
     print(output)
