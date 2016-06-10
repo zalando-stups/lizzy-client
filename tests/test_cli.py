@@ -1,7 +1,7 @@
 import json
-import os.path
 import tempfile
 import textwrap
+from pathlib import Path
 from unittest.mock import MagicMock
 from urllib.parse import quote
 
@@ -15,8 +15,10 @@ from lizzy_client.version import MAJOR_VERSION, MINOR_VERSION, VERSION
 from tokens import InvalidCredentialsError
 from urlpath import URL
 
-test_dir = os.path.dirname(__file__)
-config_path = os.path.join(test_dir, 'test_config.yaml')
+q
+
+fixtures_dir = Path(__file__).parent / 'fixtures'
+config_path = str(fixtures_dir / 'test_config.yaml')
 
 FAKE_ENV = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com',
             'LIZZY_URL': 'lizzy.example.com'}

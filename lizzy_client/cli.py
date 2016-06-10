@@ -349,8 +349,7 @@ def delete(stack_ref: List[str],
     all_with_version = all(stack.version is not None
                            for stack in stack_refs)
 
-    # TODO unit test this
-    #  this is misleading but it's the current behaviour of senza
+    # this is misleading but it's the current behaviour of senza
     # TODO Lizzy list (stack_refs) to see if it actually matches more than one stack
     # to match senza behaviour
     if (not all_with_version and not dry_run and not force):

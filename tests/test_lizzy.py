@@ -1,10 +1,10 @@
-from unittest.mock import MagicMock
-from requests import Response
-import pytest
 import json
-import os
+from unittest.mock import MagicMock
 
-from lizzy_client.lizzy import make_header, Lizzy
+import pytest
+from lizzy_client.lizzy import Lizzy, make_header
+from requests import Response
+
 
 STACK1 = """{"creation_time": 1460635167,
               "description": "Lizzy Bus (ImageVersion: 257)",
@@ -55,7 +55,7 @@ def test_delete(monkeypatch, stack_id, region, dry_run):
     lizzy.delete(stack_id, region=region, dry_run=dry_run)
 
     header = make_header('7E5770K3N')
-    url = 'https://lizzy.example/api/stacks/'+stack_id
+    url = 'https://lizzy.example/api/stacks/{}'.format(stack_id)
     expected_data = {"region": region, "dry_run": dry_run}
     mock_delete.assert_called_once_with(url,
                                         json=expected_data,
@@ -120,12 +120,6 @@ def test_traffic(monkeypatch):
 def test_new_stack(monkeypatch,
                    version, parameters, region, disable_rollback, dry_run,
                    force, tags, keep_stacks, new_traffic):
-    test_dir = os.path.dirname(__file__)
-    yaml_path = os.path.join(test_dir,
-                             'test_config.yaml')  # we can use any file for this test
-    with open(yaml_path) as yaml_file:
-        senza_yaml = yaml_file.read()
-
     mock_post = MagicMock()
     mock_post.return_value = FakeResponse(200, STACK1)
     monkeypatch.setattr('requests.post', mock_post)

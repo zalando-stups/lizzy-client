@@ -21,8 +21,6 @@ class DefinitionParamType(click.ParamType):
         if isinstance(value, str):
             try:
                 url = value if '://' in value else 'file://{}'.format(quote(os.path.abspath(value)))
-                # if '://' not in value:
-                #     url = 'file://{}'.format(quote(os.path.abspath(value)))
 
                 response = urlopen(url)
                 data = yaml.safe_load(response.read())
