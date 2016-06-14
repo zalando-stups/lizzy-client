@@ -1,15 +1,19 @@
-import pytest
-import os.path
-import requests
 import json
-from click.testing import CliRunner
+import os.path
+import tempfile
+import textwrap
 from unittest.mock import MagicMock
+from urllib.parse import quote
+
+import pytest
+import requests
+from click import UsageError
+from click.testing import CliRunner
+from lizzy_client.cli import fetch_token, main, parse_stack_refs
+from lizzy_client.lizzy import Lizzy
+from lizzy_client.version import MAJOR_VERSION, MINOR_VERSION, VERSION
 from tokens import InvalidCredentialsError
 from urlpath import URL
-
-from lizzy_client.cli import main, fetch_token
-from lizzy_client.version import VERSION, MAJOR_VERSION, MINOR_VERSION
-from lizzy_client.lizzy import Lizzy
 
 test_dir = os.path.dirname(__file__)
 config_path = os.path.join(test_dir, 'test_config.yaml')
@@ -154,7 +158,7 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
-    assert FakeLizzy.delete.call_count == 2
+    assert FakeLizzy.delete.call_count == 3  # filter of stacks is done in the server-side
     FakeLizzy.delete.assert_any_call('stack1-s7')
     FakeLizzy.delete.assert_any_call('stack1-s42')
     FakeLizzy.reset()
@@ -240,15 +244,73 @@ def test_list(mock_get_token, mock_lizzy_get):
     regular_list = json.loads(str_json)  # type: list
     for stack in [stack1, stack2, stack3, stack4]:
         assert stack in regular_list
+    # latest call in the mock
+    url_called = mock_lizzy_get.call_args[0][0]
+    assert URL(url_called).query == ''
 
     runner = CliRunner()
-    stack1_list_result = runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1'], env=FAKE_ENV,
-                                       catch_exceptions=False)
-    str_json = stack1_list_result.output.splitlines()[-1]  # type: str
-    stack1_list = json.loads(str_json)  # type: list
-    assert stack1_list == [stack1, stack3, stack4]
+    runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1'], env=FAKE_ENV)
+    # latest call in the mock
+    url_called = mock_lizzy_get.call_args[0][0]
+    assert URL(url_called).query == 'references=stack1'
+
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write(textwrap.dedent('''
+        SenzaInfo:
+          StackName: insiderstack
+        ''').encode())
+        senza_file.flush()
+
+        runner = CliRunner()
+        runner.invoke(main, ['list', senza_file.name, 'secstack'], env=FAKE_ENV)
+
+    url_called = mock_lizzy_get.call_args[0][0]
+    assert URL(url_called).query == 'references={}'.format(quote('insiderstack,secstack'))
 
     mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404,
                                                                           '{"detail": "Detailed Error"}'))
     result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
     assert '[AGENT] Detailed Error' in result.output
+
+
+def test_parse_arguments():
+    # no files as argument
+    stack_names = parse_stack_refs(['foo', 'bar'])
+    assert stack_names == ['foo', 'bar']
+
+    # use senza definitions as arguments
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write(textwrap.dedent('''
+        SenzaInfo:
+          StackName: insidefile
+        ''').encode())
+        senza_file.flush()
+
+        stack_names = parse_stack_refs(['foobar', senza_file.name])
+        assert stack_names == ['foobar', 'insidefile']
+
+    # use invalid senza definition as arguments
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write(textwrap.dedent('''
+        NotValid: impossible
+        ''').encode())
+        senza_file.flush()
+
+        with pytest.raises(UsageError) as error:
+            parse_stack_refs([senza_file.name])
+
+        assert error.value.message.startswith('Invalid senza definition')
+
+    # use not valid YAML file as input
+    with tempfile.NamedTemporaryFile() as senza_file:
+        senza_file.write('{{INVALID}}:file'.encode())
+        senza_file.flush()
+
+        with pytest.raises(UsageError) as error:
+            parse_stack_refs([senza_file.name])
+
+        assert error.value.message.startswith('Invalid senza definition')
+
+    # use directory as input
+    tmp_dir_path = tempfile.mkdtemp()
+    assert tmp_dir_path in parse_stack_refs([tmp_dir_path])
