@@ -15,7 +15,6 @@ from lizzy_client.version import MAJOR_VERSION, MINOR_VERSION, VERSION
 from tokens import InvalidCredentialsError
 from urlpath import URL
 
-q
 
 fixtures_dir = Path(__file__).parent / 'fixtures'
 config_path = str(fixtures_dir / 'test_config.yaml')
