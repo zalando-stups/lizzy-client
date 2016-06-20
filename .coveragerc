@@ -1,2 +1,12 @@
 [run]
 omit = lizzy_client/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    except requests.RequestException
+    except requests.HTTPError
+    except requests.ConnectionError

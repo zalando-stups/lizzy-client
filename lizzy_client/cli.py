@@ -175,9 +175,9 @@ def create(definition: dict, version: str,  parameter: list,
                                                 dry_run=dry_run,
                                                 tags=tag)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
-        except requests.ConnectionError as e:  # pragma: no cover
+        except requests.ConnectionError as e:
             connection_error(e)
-        except requests.HTTPError as e:  # pragma: no cover
+        except requests.HTTPError as e:
             agent_error(e)
 
     print(output)
@@ -212,9 +212,9 @@ def create(definition: dict, version: str,  parameter: list,
         with Action('Requesting traffic change..'):
             try:
                 lizzy.traffic(stack_id, traffic)
-            except requests.ConnectionError as e:  # pragma: no cover
+            except requests.ConnectionError as e:
                 connection_error(e, fatal=False)
-            except requests.HTTPError as e:  # pragma: no cover
+            except requests.HTTPError as e:
                 agent_error(e, fatal=False)
 
     # TODO unit test this
@@ -222,10 +222,10 @@ def create(definition: dict, version: str,  parameter: list,
         versions_to_keep = keep_stacks + 1
         try:
             all_stacks = lizzy.get_stacks([new_stack['stack_name']])
-        except requests.ConnectionError as e:  # pragma: no cover
+        except requests.ConnectionError as e:
             connection_error(e, fatal=False)
             error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
-        except requests.HTTPError as e:  # pragma: no cover
+        except requests.HTTPError as e:
             agent_error(e, fatal=False)
             error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
         else:
@@ -239,9 +239,9 @@ def create(definition: dict, version: str,  parameter: list,
                     click.echo(' {}'.format(old_stack_id))
                     try:
                         lizzy.delete(old_stack_id)
-                    except requests.ConnectionError as e:  # pragma: no cover
+                    except requests.ConnectionError as e:
                         connection_error(e, fatal=False)
-                    except requests.HTTPError as e:  # pragma: no cover
+                    except requests.HTTPError as e:
                         agent_error(e, fatal=False)
 
 
@@ -363,9 +363,9 @@ def delete(stack_ref: List[str],
         with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
             try:
                 output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
-            except requests.ConnectionError as e:  # pragma: no cover
+            except requests.ConnectionError as e:
                 connection_error(e)
-            except requests.HTTPError as e:  # pragma: no cover
+            except requests.HTTPError as e:
                 agent_error(e)
 
     print(output)
