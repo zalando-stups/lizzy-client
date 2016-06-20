@@ -29,10 +29,10 @@ class DefinitionParamType(click.ParamType):
                 self.fail('"{}" not found'.format(value), param, ctx)
         else:
             data = value
-        for key in ['SenzaInfo']:
-            if 'SenzaInfo' not in data:
-                self.fail('"{}" entry is missing in YAML file "{}"'.format(key, value),
-                          param, ctx)
+        if 'SenzaInfo' not in data:
+            self.fail('"SenzaInfo" entry is missing in '
+                      ' YAML file "{}"'.format(value),
+                      param, ctx)
         return data
 
 
