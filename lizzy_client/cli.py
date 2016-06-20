@@ -11,7 +11,9 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
-from .arguments import DefinitionParamType, region_option, validate_version
+from .arguments import (DefinitionParamType, region_option, validate_version,
+                        dry_run_option, output_option, remote_option,
+                        watch_option)
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
@@ -50,11 +52,6 @@ TITLES = {
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
 main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
-output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
-                             help='Use alternative output format')
-remote_option = click.option('-r', '--remote', help='URL for Agent')
-watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
-                            help='Auto update the screen every X seconds')
 
 
 def connection_error(e: requests.ConnectionError, fatal=True):
@@ -133,7 +130,7 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 @region_option
 @click.option('--disable-rollback', is_flag=True,
               help='Disable Cloud Formation rollback on failure')
-@click.option('--dry-run', is_flag=True, help='No-op mode: show what would be created')
+@dry_run_option
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
 @click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
@@ -331,7 +328,7 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 @main.command()
 @click.argument('stack_ref', nargs=-1)
 @region_option
-@click.option('--dry-run', is_flag=True, help='No-op mode: show what would be deleted')
+@dry_run_option
 @click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
 @remote_option
 def delete(stack_ref: List[str],
