@@ -2,7 +2,7 @@ import json
 import tempfile
 import textwrap
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote
 
 import pytest
@@ -14,7 +14,6 @@ from lizzy_client.lizzy import Lizzy
 from lizzy_client.version import MAJOR_VERSION, MINOR_VERSION, VERSION
 from tokens import InvalidCredentialsError
 from urlpath import URL
-
 
 fixtures_dir = Path(__file__).parent / 'fixtures'
 config_path = str(fixtures_dir / 'test_config.yaml')
@@ -229,12 +228,12 @@ def test_delete_multiple(mock_get_token, mock_fake_lizzy,
                          stack_refs, region, dry_run, expected_calls):
     runner = CliRunner()
     dry_run_flag = ['--dry-run'] if dry_run else []
-    result = runner.invoke(main,
-                           ['delete']
-                           + ['--region', region]
-                           + dry_run_flag
-                           + stack_refs,
-                           env=FAKE_ENV, catch_exceptions=False)
+    runner.invoke(main,
+                  ['delete']
+                  + ['--region', region]
+                  + dry_run_flag
+                  + stack_refs,
+                  env=FAKE_ENV, catch_exceptions=False)
     assert mock_fake_lizzy.delete.call_count == expected_calls
 
 
@@ -270,9 +269,24 @@ def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):
+    # normal call to change traffic
     runner = CliRunner()
-    result = runner.invoke(main, ['traffic', 'lizzy-test', '1.0', '90'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['traffic', 'lizzy-test', 'v10', '90'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting traffic change.. OK' in result.output
+    mock_fake_lizzy.traffic.assert_called_once_with('lizzy-test-v10', 90)
+    FakeLizzy.reset()
+
+    # check the traffic of instances
+    with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
+            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+                mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
+        runner = CliRunner()
+        result = runner.invoke(main, ['traffic', 'lizzy-test'], env=FAKE_ENV,
+                               catch_exceptions=False)
+        assert 'Requesting traffic change.. OK' not in result.output
+        assert 'Requesting traffic info.. OK' in result.output
+        mock_fake_lizzy.traffic.assert_not_called()
+        mock_fake_lizzy.get_traffic.assert_called_with('lizzy-test-v1')
 
 
 def test_version():

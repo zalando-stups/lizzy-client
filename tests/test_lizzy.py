@@ -107,6 +107,20 @@ def test_traffic(monkeypatch):
                                        verify=False)
 
 
+def test_get_traffic(monkeypatch):
+    mock_patch = MagicMock()
+    mock_patch.return_value = FakeResponse(200, '{"weight": 100.0}')
+    monkeypatch.setattr('requests.get', mock_patch)
+
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    lizzy.get_traffic('lizzy-test')
+
+    header = make_header('7E5770K3N')
+    mock_patch.assert_called_once_with(
+        'https://lizzy.example/api/stacks/lizzy-test/traffic', None,
+        headers=header, verify=False)
+
+
 @pytest.mark.parametrize(
     "version, parameters, region, disable_rollback, dry_run, force, tags, keep_stacks, new_traffic",
     [

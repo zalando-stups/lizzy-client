@@ -123,6 +123,16 @@ class Lizzy:
             print(json.dumps(data, indent=4))
             raise
 
+    def get_traffic(self, stack_id: str) -> dict:
+        url = self.stacks_url / stack_id / 'traffic'
+        header = make_header(self.access_token)
+        response = url.get(headers=header, verify=False)
+        lizzy_version = response.headers.get('X-Lizzy-Version')
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
+        response.raise_for_status()
+        return response.json()
+
     def wait_for_deployment(self, stack_id: str) -> [str]:
         retries = 3
         while retries:
