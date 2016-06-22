@@ -7,13 +7,17 @@ import dateutil.parser
 import requests
 import yaml
 from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
-                        info, print_table)
+                        info, print_table, warning)
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
+from .arguments import (DefinitionParamType, region_option, validate_version,
+                        dry_run_option, output_option, remote_option,
+                        watch_option)
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
+from .utils import get_stack_refs
 from .version import VERSION
 
 STYLES = {
@@ -48,11 +52,6 @@ TITLES = {
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
 main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
-output_option = click.option('-o', '--output', type=click.Choice(['text', 'json', 'tsv']), default='text',
-                             help='Use alternative output format')
-remote_option = click.option('-r', '--remote', help='URL for Agent')
-watch_option = click.option('-w', '--watch', type=click.IntRange(1, 300), metavar='SECS',
-                            help='Auto update the screen every X seconds')
 
 
 def connection_error(e: requests.ConnectionError, fatal=True):
@@ -125,21 +124,33 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
 
 
 @main.command()
-@remote_option
+@click.argument('definition', type=DefinitionParamType())
+@click.argument('version', callback=validate_version)
+@click.argument('parameter', nargs=-1)
+@region_option
+@click.option('--disable-rollback', is_flag=True,
+              help='Disable Cloud Formation rollback on failure')
+@dry_run_option
+@click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
+@click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
+@remote_option
 @click.option('--verbose', '-v', is_flag=True)
-@click.option('--disable-rollback', is_flag=True, help='Disable Cloud Formation rollback on failure')
-@click.argument('definition')  # TODO add definition type like senza
-@click.argument('stack-version')
-@click.argument('image_version')
-@click.argument('senza_parameters', nargs=-1)
-def create(definition: str, image_version: str, keep_stacks: Optional[int],
-           traffic: int, verbose: bool, senza_parameters: list,
-           stack_version: str, disable_rollback: bool, remote: str):
-    """Deploy a new Cloud Formation stack"""
-    senza_parameters = senza_parameters or []
+def create(definition: dict, version: str,  parameter: list,
+           region: str,
+           disable_rollback: bool,
+           dry_run: bool,
+           force: bool,
+           tag: List[str],
+           keep_stacks: Optional[int],
+           traffic: int,
+           verbose: bool,
+           remote: str,
+           ):
+    """Create a new Cloud Formation stack from the given Senza definition file"""
+    parameter = parameter or []
 
     config = Configuration()
 
@@ -149,18 +160,33 @@ def create(definition: str, image_version: str, keep_stacks: Optional[int],
 
     lizzy = Lizzy(lizzy_url, access_token)
 
+    if not force:  # pragma: no cover
+        # supporting artifact checking would imply copying a large amount of code
+        # from senza, so it should be considered out of scope until senza
+        # and lizzy client are merged
+        warning("Artifact checking is still not supported by lizzy-client.")
+
     with Action('Requesting new stack..') as action:
         try:
-            new_stack = lizzy.new_stack(image_version, keep_stacks, traffic,
-                                        definition, stack_version,
-                                        disable_rollback, senza_parameters)
+            new_stack, output = lizzy.new_stack(keep_stacks, traffic,
+                                                definition, version,
+                                                disable_rollback, parameter,
+                                                region=region,
+                                                dry_run=dry_run,
+                                                tags=tag)
             stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:
             agent_error(e)
 
+    print(output)
+
     info('Stack ID: {}'.format(stack_id))
+
+    if dry_run:
+        info("Post deployment steps skipped")
+        exit(0)
 
     with Action('Waiting for new stack...') as action:
         if verbose:
@@ -300,11 +326,14 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
 
 
 @main.command()
-@click.argument('stack_name')
-@click.argument('stack_version')
+@click.argument('stack_ref', nargs=-1)
+@region_option
+@dry_run_option
+@click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
 @remote_option
-def delete(stack_name: str, stack_version: str, remote: str):
-    '''Delete a single stack'''
+def delete(stack_ref: List[str],
+           region: str, dry_run: bool, force: bool, remote: str):
+    """Delete Cloud Formation stacks"""
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
@@ -312,14 +341,34 @@ def delete(stack_name: str, stack_version: str, remote: str):
     lizzy_url = remote or config.lizzy_url
     lizzy = Lizzy(lizzy_url, access_token)
 
-    with Action('Requesting stack deletion..'):
-        stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        try:
-            lizzy.delete(stack_id)
-        except requests.ConnectionError as e:
-            connection_error(e)
-        except requests.HTTPError as e:
-            agent_error(e)
+    stack_refs = get_stack_refs(stack_ref)
+
+    all_with_version = all(stack.version is not None
+                           for stack in stack_refs)
+
+    # this is misleading but it's the current behaviour of senza
+    # TODO Lizzy list (stack_refs) to see if it actually matches more than one stack
+    # to match senza behaviour
+    if (not all_with_version and not dry_run and not force):
+        fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
+                    'Please use the "--force" flag if you really want to delete multiple stacks.')
+
+    # TODO pass force
+
+    for stack in stack_refs:
+        if stack.version is not None:
+            stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
+        else:
+            stack_id = stack.name
+        with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
+            try:
+                output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
+            except requests.ConnectionError as e:
+                connection_error(e)
+            except requests.HTTPError as e:
+                agent_error(e)
+
+    print(output)
 
 
 @main.command()

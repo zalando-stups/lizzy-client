@@ -1,7 +1,7 @@
 import json
-import os.path
 import tempfile
 import textwrap
+from pathlib import Path
 from unittest.mock import MagicMock
 from urllib.parse import quote
 
@@ -15,8 +15,9 @@ from lizzy_client.version import MAJOR_VERSION, MINOR_VERSION, VERSION
 from tokens import InvalidCredentialsError
 from urlpath import URL
 
-test_dir = os.path.dirname(__file__)
-config_path = os.path.join(test_dir, 'test_config.yaml')
+
+fixtures_dir = Path(__file__).parent / 'fixtures'
+config_path = str(fixtures_dir / 'test_config.yaml')
 
 FAKE_ENV = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com',
             'LIZZY_URL': 'lizzy.example.com'}
@@ -31,7 +32,7 @@ class FakeResponse(requests.Response):
         self.status_code = status_code
         self._content = text
         self.raise_for_status = MagicMock()
-        self.headers = {}
+        self.headers = {'X-Lizzy-Output': 'Output'}
 
     def json(self):
         return json.loads(self.content)
@@ -133,7 +134,6 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
-    runner = CliRunner()
     result = runner.invoke(main, ['create', config_path, '42', '1.0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
@@ -194,10 +194,79 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert result.exit_code == 1
 
 
-def test_delete(mock_get_token, mock_fake_lizzy):
+@pytest.mark.parametrize(
+    "stack_name, stack_version, region, dry_run",
+    [
+        ("stack_id", "1", 'eu-central-1', False),
+        ("574CC", "42", 'eu-central-1', True),
+        ("stack_id", "7", 'eu-west-1', False),
+        ("574CC", "2", 'eu-west-1', True),
+    ])
+def test_delete(mock_get_token, mock_fake_lizzy,
+                stack_name, stack_version, region, dry_run):
     runner = CliRunner()
-    result = runner.invoke(main, ['delete', 'lizzy-test', '1.0'], env=FAKE_ENV, catch_exceptions=False)
-    assert 'Requesting stack deletion.. OK' in result.output
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + [stack_name, stack_version],
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert "Requesting stack '{}-{}' deletion.. OK".format(stack_name, stack_version) in result.output
+    stack_id = "{}-{}".format(stack_name, stack_version)
+    mock_fake_lizzy.delete.assert_called_once_with(stack_id, dry_run=dry_run, region=region)
+
+
+@pytest.mark.parametrize(
+    "stack_refs, region, dry_run, expected_calls",
+    [
+        (["stack_id", "1"], 'eu-central-1', False, 1),
+        (['foobar-stack', 'v1', 'v2', 'v99'], 'eu-central-1', False, 3),
+        (["stack_id", "1"], 'eu-central-1', True, 1),
+        (['foobar-stack', 'v1', 'v2', 'v99'], 'eu-central-1', True, 3)
+    ])
+def test_delete_multiple(mock_get_token, mock_fake_lizzy,
+                         stack_refs, region, dry_run, expected_calls):
+    runner = CliRunner()
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + stack_refs,
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert mock_fake_lizzy.delete.call_count == expected_calls
+
+
+@pytest.mark.parametrize(
+    "stack_refs, region, dry_run, expected_calls",
+    [
+        (["stack_id"], 'eu-central-1', False, 1),
+        (['foobar-stack', '1', 'other-stack'], 'eu-central-1', False, 2),
+    ])
+def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
+                               stack_refs, region, dry_run, expected_calls):
+    runner = CliRunner()
+    dry_run_flag = ['--dry-run'] if dry_run else []
+    result = runner.invoke(main,
+                           ['delete']
+                           + ['--region', region]
+                           + dry_run_flag
+                           + stack_refs,
+                           env=FAKE_ENV, catch_exceptions=True)
+    assert 'Please use the "--force" flag if you really want to delete multiple stacks.' in result.output
+    #
+    result_force = runner.invoke(main,
+                                 ['delete']
+                                 + ['--region', region]
+                                 + ['--force']
+                                 + dry_run_flag
+                                 + stack_refs,
+                                 env=FAKE_ENV, catch_exceptions=True)
+
+    assert ('Please use the "--force" flag if you really want to delete multiple stacks.'
+            not in result_force.output)
+    assert mock_fake_lizzy.delete.call_count == expected_calls
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):

@@ -3,6 +3,7 @@ import time
 from typing import Dict, List, Optional
 
 import requests
+import yaml
 from clickclick import warning
 from urlpath import URL
 
@@ -22,19 +23,31 @@ class Lizzy:
         self.api_url = base_url if base_url.path == '/api' else base_url / 'api'
         self.access_token = access_token
 
+    @classmethod
+    def get_output(cls, response: requests.Response) -> str:
+        """
+        Extracts the senza cli output from the response
+        """
+        output = response.headers['X-Lizzy-Output']  # type: str
+        output = output.replace('\\n', '\n')  # unescape new lines
+        lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
+        return '\n'.join(lines)
+
     @property
     def stacks_url(self) -> URL:
         return self.api_url / 'stacks'
 
-    def delete(self, stack_id: str):
+    def delete(self, stack_id: str, region: str, dry_run: bool):
         url = self.stacks_url / stack_id
 
         header = make_header(self.access_token)
-        request = url.delete(headers=header, verify=False)
+        data = {"region": region, "dry_run": dry_run}
+        request = url.delete(headers=header, json=data, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
+        return self.get_output(request)
 
     def get_stack(self, stack_id: str) -> dict:
         header = make_header(self.access_token)
@@ -64,44 +77,42 @@ class Lizzy:
         return response.json()
 
     def new_stack(self,
-                  image_version: str,
                   keep_stacks: int,
                   new_traffic: int,
-                  senza_yaml_path: str,
-                  stack_version: Optional[str],
+                  senza_yaml: dict,
+                  stack_version: str,
                   disable_rollback: bool,
-                  parameters: List[str]) -> Dict[str, str]:
+                  parameters: List[str],
+                  region: Optional[str],
+                  dry_run: bool,
+                  tags: List[str]) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
         """
         Requests a new stack.
         """
         header = make_header(self.access_token)
-
-        with open(senza_yaml_path) as senza_yaml_file:
-            senza_yaml = senza_yaml_file.read()
-
-        data = {'image_version': image_version,
+        data = {'senza_yaml': yaml.dump(senza_yaml),
+                'stack_version': stack_version,
+                'region': region,
                 'disable_rollback': disable_rollback,
+                'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'parameters': parameters,
-                'senza_yaml': senza_yaml}
+                'tags': tags}
 
-        if stack_version:
-            data['stack_version'] = stack_version
-
-        request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
+        request = self.stacks_url.post(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
-        return request.json()
+        return request.json(), self.get_output(request)
 
     def traffic(self, stack_id: str, percentage: int):
         url = self.stacks_url / stack_id
         data = {"new_traffic": percentage}
 
         header = make_header(self.access_token)
-        request = url.patch(data=json.dumps(data), headers=header, verify=False)
+        request = url.patch(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
