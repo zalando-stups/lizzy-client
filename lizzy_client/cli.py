@@ -301,13 +301,15 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
             break
 
 
-@main.command()
+@main.command('traffic')
 @click.argument('stack_name')
-@click.argument('stack_version')
-@click.argument('percentage', type=click.IntRange(0, 100, clamp=True))
+@click.argument('stack_version', required=False)
+@click.argument('percentage', type=click.IntRange(0, 100, clamp=True), required=False)
 @remote_option
-def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
-    '''Switch traffic'''
+@output_option
+def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[int],
+            remote: Optional[str], output: Optional[str]):
+    '''Manage stack traffic'''
     config = Configuration()
 
     access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
@@ -315,14 +317,35 @@ def traffic(stack_name: str, stack_version: str, percentage: int, remote: str):
     lizzy_url = remote or config.lizzy_url
     lizzy = Lizzy(lizzy_url, access_token)
 
-    with Action('Requesting traffic change..'):
-        stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-        try:
-            lizzy.traffic(stack_id, percentage)
-        except requests.ConnectionError as e:
-            connection_error(e)
-        except requests.HTTPError as e:
-            agent_error(e)
+    if percentage is None:
+        stack_reference = [stack_name]
+        if stack_version:
+            stack_reference.append(stack_version)
+
+        with Action('Requesting traffic info..'):
+            stack_weights = []
+            for stack in lizzy.get_stacks(stack_reference):
+                stack_id = '{stack_name}-{version}'.format_map(stack)
+                traffic = lizzy.get_traffic(stack_id)
+                stack_weights.append({
+                    'stack_name': stack_name,
+                    'version': stack['version'],
+                    'identifier': stack_id,
+                    'weight%': traffic['weight']
+                })
+        cols = 'stack_name version identifier weight%'.split()
+        with OutputFormat(output):
+            print_table(cols,
+                        sorted(stack_weights, key=lambda x: x['identifier']))
+    else:
+        with Action('Requesting traffic change..'):
+            stack_id = '{stack_name}-{stack_version}'.format_map(locals())
+            try:
+                lizzy.traffic(stack_id, percentage)
+            except requests.ConnectionError as e:
+                connection_error(e)
+            except requests.HTTPError as e:
+                agent_error(e)
 
 
 @main.command()
