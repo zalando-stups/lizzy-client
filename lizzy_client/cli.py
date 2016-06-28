@@ -123,6 +123,27 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
     return stack_names
 
 
+def setup_lizzy_client(explicit_agent_url=None):
+    config = Configuration()
+
+    try:
+        token_url = config.token_url
+    except AttributeError:
+        fatal_error('Environment variable OAUTH2_ACCESS_TOKEN_URL is not set.')
+
+    scopes = config.scopes
+    credentials_dir = config.credentials_dir
+
+    access_token = fetch_token(token_url, scopes, credentials_dir)
+
+    try:
+        lizzy_url = explicit_agent_url or config.lizzy_url
+    except AttributeError:
+        fatal_error('Environment variable LIZZY_URL is not set.')
+
+    return Lizzy(lizzy_url, access_token)
+
+
 @main.command()
 @click.argument('definition', type=DefinitionParamType())
 @click.argument('version', callback=validate_version)
@@ -150,15 +171,8 @@ def create(definition: dict, version: str,  parameter: list,
            remote: str,
            ):
     """Create a new Cloud Formation stack from the given Senza definition file"""
+    lizzy = setup_lizzy_client(remote)
     parameter = parameter or []
-
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-
-    lizzy = Lizzy(lizzy_url, access_token)
 
     if not force:  # pragma: no cover
         # supporting artifact checking would imply copying a large amount of code
@@ -174,12 +188,12 @@ def create(definition: dict, version: str,  parameter: list,
                                                 region=region,
                                                 dry_run=dry_run,
                                                 tags=tag)
-            stack_id = '{stack_name}-{version}'.format_map(new_stack)
         except requests.ConnectionError as e:
             connection_error(e)
         except requests.HTTPError as e:
             agent_error(e)
 
+    stack_id = '{stack_name}-{version}'.format_map(new_stack)
     print(output)
 
     info('Stack ID: {}'.format(stack_id))
@@ -254,21 +268,7 @@ def create(definition: dict, version: str,  parameter: list,
 def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
                 remote: str):
     """List Lizzy stacks"""
-
-    config = Configuration()
-
-    try:
-        token_url = config.token_url
-    except AttributeError:
-        fatal_error('Environment variable OAUTH2_ACCESS_TOKEN_URL is not set!')
-
-    scopes = config.scopes
-    credentials_dir = config.credentials_dir
-
-    access_token = fetch_token(token_url, scopes, credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
+    lizzy = setup_lizzy_client(remote)
     stack_references = parse_stack_refs(stack_ref)
 
     while True:
@@ -310,21 +310,21 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
 def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[int],
             remote: Optional[str], output: Optional[str]):
     '''Manage stack traffic'''
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
+    lizzy = setup_lizzy_client(remote)
 
     if percentage is None:
         stack_reference = [stack_name]
-        if stack_version:
-            stack_reference.append(stack_version)
 
         with Action('Requesting traffic info..'):
             stack_weights = []
-            for stack in lizzy.get_stacks(stack_reference):
+            try:
+                stacks_found = lizzy.get_stacks(stack_reference)
+            except requests.ConnectionError as e:
+                connection_error(e)
+            except requests.HTTPError as e:
+                agent_error(e)
+
+            for stack in stacks_found:
                 stack_id = '{stack_name}-{version}'.format_map(stack)
                 traffic = lizzy.get_traffic(stack_id)
                 stack_weights.append({
@@ -357,15 +357,8 @@ def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[
 def delete(stack_ref: List[str],
            region: str, dry_run: bool, force: bool, remote: str):
     """Delete Cloud Formation stacks"""
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
-
+    lizzy = setup_lizzy_client(remote)
     stack_refs = get_stack_refs(stack_ref)
-
     all_with_version = all(stack.version is not None
                            for stack in stack_refs)
 
@@ -376,7 +369,7 @@ def delete(stack_ref: List[str],
         fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
                     'Please use the "--force" flag if you really want to delete multiple stacks.')
 
-    # TODO pass force
+    # TODO pass force option to agent
 
     for stack in stack_refs:
         if stack.version is not None:
