@@ -340,7 +340,7 @@ def test_list(mock_get_token, mock_lizzy_get):
     regular_list = json.loads(str_json)  # type: list
     for stack in [stack1, stack2, stack3, stack4]:
         assert stack in regular_list
-        # latest call in the mock
+    # latest call in the mock
     url_called = mock_lizzy_get.call_args[0][0]
     assert URL(url_called).query == ''
 
@@ -412,7 +412,7 @@ def test_parse_arguments():
     assert tmp_dir_path in parse_stack_refs([tmp_dir_path])
 
 
-def test_environment_not_set_properly():
+def test_config_missing_oauth2_url():
     ENV_MISSING_OAUTH_URL = {'LIZZY_URL': 'lizzy.example.com'}
     runner = CliRunner()
     result = runner.invoke(main, ['list', 'secstack'], env=ENV_MISSING_OAUTH_URL)
@@ -421,7 +421,7 @@ def test_environment_not_set_properly():
     assert result.exit_code == 1
 
 
-def test_lizzy_url_missing(mock_get_token):
+def test_config_missing_lizzy_url(mock_get_token):
     ENV_MISSING_LIZZY_URL = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com'}
     runner = CliRunner()
     result = runner.invoke(main, ['list', 'secstack'], env=ENV_MISSING_LIZZY_URL)
