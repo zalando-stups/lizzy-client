@@ -269,14 +269,15 @@ def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):
-    # normal call to change traffic
+    # Normal call to change traffic
     runner = CliRunner()
     result = runner.invoke(main, ['traffic', 'lizzy-test', 'v10', '90'], env=FAKE_ENV, catch_exceptions=False)
     assert 'Requesting traffic change.. OK' in result.output
+    assert result.exit_code == 0
     mock_fake_lizzy.traffic.assert_called_once_with('lizzy-test-v10', 90)
     FakeLizzy.reset()
 
-    # check the traffic of instances
+    # Use traffic command to print the traffic of instances
     with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
             {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
                 mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
@@ -285,8 +286,20 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
                                catch_exceptions=False)
         assert 'Requesting traffic change.. OK' not in result.output
         assert 'Requesting traffic info.. OK' in result.output
+        assert result.exit_code == 0
         mock_fake_lizzy.traffic.assert_not_called()
         mock_fake_lizzy.get_traffic.assert_called_with('lizzy-test-v1')
+
+    # Common miss usage of traffic command argument "90" is used
+    # as a stack filter (on the Senza cli side in the agent) and
+    # not as traffic change percentage.
+    with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
+            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+                mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
+        runner = CliRunner()
+        result = runner.invoke(main, ['traffic', 'lizzy-test', '90'], env=FAKE_ENV,
+                               catch_exceptions=False)
+        assert result.exit_code == 0
 
 
 def test_version():
@@ -397,3 +410,21 @@ def test_parse_arguments():
     # use directory as input
     tmp_dir_path = tempfile.mkdtemp()
     assert tmp_dir_path in parse_stack_refs([tmp_dir_path])
+
+
+def test_config_missing_oauth2_url():
+    ENV_MISSING_OAUTH_URL = {'LIZZY_URL': 'lizzy.example.com'}
+    runner = CliRunner()
+    result = runner.invoke(main, ['list', 'secstack'], env=ENV_MISSING_OAUTH_URL)
+
+    assert 'OAUTH2_ACCESS_TOKEN_URL is not set' in result.output
+    assert result.exit_code == 1
+
+
+def test_config_missing_lizzy_url(mock_get_token):
+    ENV_MISSING_LIZZY_URL = {'OAUTH2_ACCESS_TOKEN_URL': 'oauth.example.com'}
+    runner = CliRunner()
+    result = runner.invoke(main, ['list', 'secstack'], env=ENV_MISSING_LIZZY_URL)
+
+    assert 'LIZZY_URL is not set' in result.output
+    assert result.exit_code == 1

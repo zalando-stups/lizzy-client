@@ -1,5 +1,6 @@
 import os.path
 import time
+from functools import wraps
 from typing import List, Optional
 
 import click
@@ -11,8 +12,8 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
-from .arguments import (DefinitionParamType, region_option, validate_version,
-                        dry_run_option, output_option, remote_option,
+from .arguments import (DefinitionParamType, dry_run_option, output_option,
+                        region_option, remote_option, validate_version,
                         watch_option)
 from .configuration import Configuration
 from .lizzy import Lizzy
@@ -83,6 +84,18 @@ def agent_error(e: requests.HTTPError, fatal=True):
         error(msg)
 
 
+def display_user_friendly_agent_errors(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except requests.ConnectionError as e:
+            connection_error(e)
+        except requests.HTTPError as e:
+            agent_error(e)
+    return _wrapper
+
+
 def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
     """
     Common function to fetch token
@@ -123,6 +136,27 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
     return stack_names
 
 
+def setup_lizzy_client(explicit_agent_url=None):
+    config = Configuration()
+
+    try:
+        token_url = config.token_url
+    except AttributeError:
+        fatal_error('Environment variable OAUTH2_ACCESS_TOKEN_URL is not set.')
+
+    scopes = config.scopes
+    credentials_dir = config.credentials_dir
+
+    access_token = fetch_token(token_url, scopes, credentials_dir)
+
+    try:
+        lizzy_url = explicit_agent_url or config.lizzy_url
+    except AttributeError:
+        fatal_error('Environment variable LIZZY_URL is not set.')
+
+    return Lizzy(lizzy_url, access_token)
+
+
 @main.command()
 @click.argument('definition', type=DefinitionParamType())
 @click.argument('version', callback=validate_version)
@@ -138,6 +172,7 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
               help="Percentage of traffic for the new stack")
 @remote_option
 @click.option('--verbose', '-v', is_flag=True)
+@display_user_friendly_agent_errors
 def create(definition: dict, version: str,  parameter: list,
            region: str,
            disable_rollback: bool,
@@ -150,15 +185,8 @@ def create(definition: dict, version: str,  parameter: list,
            remote: str,
            ):
     """Create a new Cloud Formation stack from the given Senza definition file"""
+    lizzy = setup_lizzy_client(remote)
     parameter = parameter or []
-
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-
-    lizzy = Lizzy(lizzy_url, access_token)
 
     if not force:  # pragma: no cover
         # supporting artifact checking would imply copying a large amount of code
@@ -167,19 +195,14 @@ def create(definition: dict, version: str,  parameter: list,
         warning("Artifact checking is still not supported by lizzy-client.")
 
     with Action('Requesting new stack..') as action:
-        try:
-            new_stack, output = lizzy.new_stack(keep_stacks, traffic,
-                                                definition, version,
-                                                disable_rollback, parameter,
-                                                region=region,
-                                                dry_run=dry_run,
-                                                tags=tag)
-            stack_id = '{stack_name}-{version}'.format_map(new_stack)
-        except requests.ConnectionError as e:
-            connection_error(e)
-        except requests.HTTPError as e:
-            agent_error(e)
+        new_stack, output = lizzy.new_stack(keep_stacks, traffic,
+                                            definition, version,
+                                            disable_rollback, parameter,
+                                            region=region,
+                                            dry_run=dry_run,
+                                            tags=tag)
 
+    stack_id = '{stack_name}-{version}'.format_map(new_stack)
     print(output)
 
     info('Stack ID: {}'.format(stack_id))
@@ -251,37 +274,16 @@ def create(definition: dict, version: str,  parameter: list,
 @remote_option
 @watch_option
 @output_option
+@display_user_friendly_agent_errors
 def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
                 remote: str):
     """List Lizzy stacks"""
-
-    config = Configuration()
-
-    try:
-        token_url = config.token_url
-    except AttributeError:
-        fatal_error('Environment variable OAUTH2_ACCESS_TOKEN_URL is not set!')
-
-    scopes = config.scopes
-    credentials_dir = config.credentials_dir
-
-    access_token = fetch_token(token_url, scopes, credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
+    lizzy = setup_lizzy_client(remote)
     stack_references = parse_stack_refs(stack_ref)
 
     while True:
-        # TODO reimplement all later
-        try:
-            stacks = lizzy.get_stacks(stack_references)
-        except requests.ConnectionError as e:
-            connection_error(e)
-        except requests.HTTPError as e:
-            agent_error(e)
-
         rows = []
-        for stack in stacks:
+        for stack in lizzy.get_stacks(stack_references):
             creation_time = dateutil.parser.parse(stack['creation_time'])
             rows.append({'stack_name': stack['stack_name'],
                          'version': stack['version'],
@@ -307,20 +309,14 @@ def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
 @click.argument('percentage', type=click.IntRange(0, 100, clamp=True), required=False)
 @remote_option
 @output_option
+@display_user_friendly_agent_errors
 def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[int],
             remote: Optional[str], output: Optional[str]):
     '''Manage stack traffic'''
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
+    lizzy = setup_lizzy_client(remote)
 
     if percentage is None:
         stack_reference = [stack_name]
-        if stack_version:
-            stack_reference.append(stack_version)
 
         with Action('Requesting traffic info..'):
             stack_weights = []
@@ -340,12 +336,7 @@ def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[
     else:
         with Action('Requesting traffic change..'):
             stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-            try:
-                lizzy.traffic(stack_id, percentage)
-            except requests.ConnectionError as e:
-                connection_error(e)
-            except requests.HTTPError as e:
-                agent_error(e)
+            lizzy.traffic(stack_id, percentage)
 
 
 @main.command()
@@ -354,18 +345,12 @@ def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[
 @dry_run_option
 @click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
 @remote_option
+@display_user_friendly_agent_errors
 def delete(stack_ref: List[str],
            region: str, dry_run: bool, force: bool, remote: str):
     """Delete Cloud Formation stacks"""
-    config = Configuration()
-
-    access_token = fetch_token(config.token_url, config.scopes, config.credentials_dir)
-
-    lizzy_url = remote or config.lizzy_url
-    lizzy = Lizzy(lizzy_url, access_token)
-
+    lizzy = setup_lizzy_client(remote)
     stack_refs = get_stack_refs(stack_ref)
-
     all_with_version = all(stack.version is not None
                            for stack in stack_refs)
 
@@ -376,20 +361,17 @@ def delete(stack_ref: List[str],
         fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
                     'Please use the "--force" flag if you really want to delete multiple stacks.')
 
-    # TODO pass force
+    # TODO pass force option to agent
 
+    output = ''
     for stack in stack_refs:
         if stack.version is not None:
             stack_id = '{stack.name}-{stack.version}'.format(stack=stack)
         else:
             stack_id = stack.name
+
         with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
-            try:
-                output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
-            except requests.ConnectionError as e:
-                connection_error(e)
-            except requests.HTTPError as e:
-                agent_error(e)
+            output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
 
     print(output)
 
