@@ -1,3 +1,4 @@
+import inspect
 import json
 import tempfile
 import textwrap
@@ -41,18 +42,28 @@ class FakeLizzy(Lizzy):
     final_state = 'CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
-    delete = MagicMock()
 
-    def __init__(self, base_url: str, access_token: str):
+    def __init__(self):
         self.access_token = "TOKEN"
         self.api_url = URL('https://localhost')
+        self._delete_mock = MagicMock()
 
     @classmethod
     def reset(cls):
         cls.final_state = 'CREATE_COMPLETE'
         cls.raise_exception = False
-        cls.delete.reset_mock()
         cls.traffic.reset_mock()
+
+    def delete(self, *args, **kwargs):
+        original_arg_info = inspect.getfullargspec(super().delete)
+        self_argument = 1
+        number_of_default_args = 0
+        if original_arg_info.defaults:
+            number_of_default_args = len(original_arg_info.defaults)
+        min_number_of_arguments = len(original_arg_info.args) - self_argument - number_of_default_args
+        if len(args) + len(kwargs) < min_number_of_arguments:
+            pytest.fail("Arity of mocked method not compatible with implementation")
+        self._delete_mock(*args, **kwargs)
 
     def wait_for_deployment(self, stack_id: str) -> [str]:
         return ['CF:WAITING', self.final_state]
@@ -113,8 +124,9 @@ def mock_get_token(monkeypatch):
 @pytest.fixture
 def mock_fake_lizzy(monkeypatch):
     FakeLizzy.reset()
-    monkeypatch.setattr('lizzy_client.cli.Lizzy', FakeLizzy)
-    return FakeLizzy
+    fake_instance = FakeLizzy()
+    monkeypatch.setattr('lizzy_client.cli.Lizzy', MagicMock(return_value=fake_instance))
+    return fake_instance
 
 
 def test_fetch_token(mock_get_token):
@@ -142,7 +154,7 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 0)
-    FakeLizzy.delete.assert_not_called()
+    mock_fake_lizzy._delete_mock.assert_not_called()
     FakeLizzy.reset()
 
     result = runner.invoke(main, ['create', config_path,
@@ -157,9 +169,9 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
     FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
-    assert FakeLizzy.delete.call_count == 3  # filter of stacks is done in the server-side
-    FakeLizzy.delete.assert_any_call('stack1-s7')
-    FakeLizzy.delete.assert_any_call('stack1-s42')
+    assert mock_fake_lizzy._delete_mock.call_count == 3  # filter of stacks is done in the server-side
+    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s7')
+    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s42')
     FakeLizzy.reset()
 
     # with explicit traffic
@@ -213,7 +225,7 @@ def test_delete(mock_get_token, mock_fake_lizzy,
                            env=FAKE_ENV, catch_exceptions=False)
     assert "Requesting stack '{}-{}' deletion.. OK".format(stack_name, stack_version) in result.output
     stack_id = "{}-{}".format(stack_name, stack_version)
-    mock_fake_lizzy.delete.assert_called_once_with(stack_id, dry_run=dry_run, region=region)
+    mock_fake_lizzy._delete_mock.assert_called_once_with(stack_id, dry_run=dry_run, region=region)
 
 
 @pytest.mark.parametrize(
@@ -234,7 +246,7 @@ def test_delete_multiple(mock_get_token, mock_fake_lizzy,
                   + dry_run_flag
                   + stack_refs,
                   env=FAKE_ENV, catch_exceptions=False)
-    assert mock_fake_lizzy.delete.call_count == expected_calls
+    assert mock_fake_lizzy._delete_mock.call_count == expected_calls
 
 
 @pytest.mark.parametrize(
@@ -265,7 +277,7 @@ def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
 
     assert ('Please use the "--force" flag if you really want to delete multiple stacks.'
             not in result_force.output)
-    assert mock_fake_lizzy.delete.call_count == expected_calls
+    assert mock_fake_lizzy._delete_mock.call_count == expected_calls
 
 
 def test_traffic(mock_get_token, mock_fake_lizzy):
