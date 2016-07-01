@@ -37,11 +37,14 @@ class Lizzy:
     def stacks_url(self) -> URL:
         return self.api_url / 'stacks'
 
-    def delete(self, stack_id: str, region: str, dry_run: bool):
+    def delete(self, stack_id: str, region: str=None, dry_run: bool=False):
         url = self.stacks_url / stack_id
 
         header = make_header(self.access_token)
-        data = {"region": region, "dry_run": dry_run}
+        data = {"dry_run": dry_run}
+        if region:
+            data["region"] = region
+
         request = url.delete(headers=header, json=data, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
