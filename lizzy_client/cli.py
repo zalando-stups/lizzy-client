@@ -192,7 +192,7 @@ def create(definition: dict, version: str,  parameter: list,
         # supporting artifact checking would imply copying a large amount of code
         # from senza, so it should be considered out of scope until senza
         # and lizzy client are merged
-        warning("Artifact checking is still not supported by lizzy-client.")
+        warning("WARNING: Artifact checking is still not supported by lizzy-client.")
 
     with Action('Requesting new stack..') as action:
         new_stack, output = lizzy.new_stack(keep_stacks, traffic,
