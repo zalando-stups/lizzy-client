@@ -114,9 +114,12 @@ class Lizzy:
         request.raise_for_status()
         return request.json(), self.get_output(request)
 
-    def traffic(self, stack_id: str, percentage: int):
+    def traffic(self, stack_id: str, percentage: int,
+                region: Optional[str]=None):
         url = self.stacks_url / stack_id
         data = {"new_traffic": percentage}
+        if region:
+            data['region'] = region
 
         header = make_header(self.access_token)
         request = url.patch(json=data, headers=header, verify=False)

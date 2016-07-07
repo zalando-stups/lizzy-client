@@ -106,6 +106,19 @@ def test_traffic(monkeypatch):
                                        json={"new_traffic": 42},
                                        verify=False)
 
+    # call with region payload
+    mock_patch.reset_mock()
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    lizzy.traffic('574CC', 42, region='ab-foo-7')
+
+    header = make_header('7E5770K3N')
+    mock_patch.assert_called_once_with('https://lizzy.example/api/stacks/574CC',
+                                       headers=header,
+                                       data=None,
+                                       json={'new_traffic': 42,
+                                             'region': 'ab-foo-7'},
+                                       verify=False)
+
 
 def test_get_traffic(monkeypatch):
     mock_request = MagicMock()

@@ -344,7 +344,7 @@ def traffic(stack_name: str,
     else:
         with Action('Requesting traffic change..'):
             stack_id = '{stack_name}-{stack_version}'.format_map(locals())
-            lizzy.traffic(stack_id, percentage)
+            lizzy.traffic(stack_id, percentage, region=region)
 
 
 @main.command()
