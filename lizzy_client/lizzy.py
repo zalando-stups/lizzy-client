@@ -62,12 +62,15 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
-    def get_stacks(self, stack_reference: Optional[List[str]]=None) -> list:
+    def get_stacks(self, stack_reference: Optional[List[str]]=None, region: str=None) -> list:
         fetch_stacks_url = self.stacks_url
+        query = {}
+        if region:
+            query['region'] = region
         if stack_reference:
-            fetch_stacks_url = fetch_stacks_url.with_query({
-                'references': ','.join(stack_reference)
-            })
+            query['references'] = ','.join(stack_reference)
+
+        fetch_stacks_url = fetch_stacks_url.with_query(query)
 
         response = fetch_stacks_url.get(headers=make_header(self.access_token),
                                         verify=False)

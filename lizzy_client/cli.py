@@ -272,18 +272,19 @@ def create(definition: dict, version: str,  parameter: list,
 @click.argument('stack_ref', nargs=-1)
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
 @remote_option
+@region_option
 @watch_option
 @output_option
 @display_user_friendly_agent_errors
-def list_stacks(stack_ref: List[str], all: bool, watch: int, output: str,
-                remote: str):
+def list_stacks(stack_ref: List[str], all: bool, remote: str, region: str,
+                watch: int, output: str):
     """List Lizzy stacks"""
     lizzy = setup_lizzy_client(remote)
     stack_references = parse_stack_refs(stack_ref)
 
     while True:
         rows = []
-        for stack in lizzy.get_stacks(stack_references):
+        for stack in lizzy.get_stacks(stack_references, region=region):
             creation_time = dateutil.parser.parse(stack['creation_time'])
             rows.append({'stack_name': stack['stack_name'],
                          'version': stack['version'],

@@ -346,6 +346,7 @@ def test_list(mock_get_token, mock_lizzy_get):
               'status': 'CREATE_COMPLETE',
               'creation_time': 1451642400.0}
 
+    # list all
     runner = CliRunner()
     regular_list_result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
     str_json = regular_list_result.output.splitlines()[-1]  # type: str
@@ -356,12 +357,13 @@ def test_list(mock_get_token, mock_lizzy_get):
     url_called = mock_lizzy_get.call_args[0][0]
     assert URL(url_called).query == ''
 
+    # list using stack name in cmd line
     runner = CliRunner()
     runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1'], env=FAKE_ENV)
-    # latest call in the mock
-    url_called = mock_lizzy_get.call_args[0][0]
+    url_called = mock_lizzy_get.call_args[0][0]  # latest call in the mock
     assert URL(url_called).query == 'references=stack1'
 
+    # list using senza definition
     with tempfile.NamedTemporaryFile() as senza_file:
         senza_file.write(textwrap.dedent('''
         SenzaInfo:
@@ -375,10 +377,19 @@ def test_list(mock_get_token, mock_lizzy_get):
     url_called = mock_lizzy_get.call_args[0][0]
     assert URL(url_called).query == 'references={}'.format(quote('insiderstack,secstack'))
 
-    mock_lizzy_get.side_effect = requests.HTTPError(response=FakeResponse(404,
-                                                                          '{"detail": "Detailed Error"}'))
+    # show server errors while listing
+    mock_lizzy_get.side_effect = requests.HTTPError(
+        response=FakeResponse(404,
+                              '{"detail": "Detailed Error"}'))
     result = runner.invoke(main, ['list', '-o', 'json'], env=FAKE_ENV, catch_exceptions=False)
     assert '[AGENT] Detailed Error' in result.output
+
+    # list passing the region
+    runner = CliRunner()
+    runner.invoke(main, ['list', '--all', '-o', 'json', 'stack1', '--region', 'ab-foobar-7'],
+                  env=FAKE_ENV)
+    url_called = mock_lizzy_get.call_args[0][0]  # latest call in the mock
+    assert URL(url_called).query == 'references=stack1&region=ab-foobar-7'
 
 
 def test_parse_arguments():
