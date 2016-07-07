@@ -300,7 +300,20 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
         assert 'Requesting traffic info.. OK' in result.output
         assert result.exit_code == 0
         mock_fake_lizzy.traffic.assert_not_called()
-        mock_fake_lizzy.get_traffic.assert_called_with('lizzy-test-v1')
+        mock_fake_lizzy.get_traffic.assert_called_with('lizzy-test-v1', region=None)
+
+    # Use traffic command to print the traffic of instances in a different region
+    with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
+            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+                mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
+        runner = CliRunner()
+        result = runner.invoke(main, ['traffic', 'lizzy-test', '--region', 'ab-bar-7'],
+                               env=FAKE_ENV, catch_exceptions=False)
+        assert 'Requesting traffic change.. OK' not in result.output
+        assert 'Requesting traffic info.. OK' in result.output
+        assert result.exit_code == 0
+        mock_fake_lizzy.traffic.assert_not_called()
+        mock_fake_lizzy.get_traffic.assert_called_with('lizzy-test-v1', region='ab-bar-7')
 
     # Common miss usage of traffic command argument "90" is used
     # as a stack filter (on the Senza cli side in the agent) and

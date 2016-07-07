@@ -108,17 +108,28 @@ def test_traffic(monkeypatch):
 
 
 def test_get_traffic(monkeypatch):
-    mock_patch = MagicMock()
-    mock_patch.return_value = FakeResponse(200, '{"weight": 100.0}')
-    monkeypatch.setattr('requests.get', mock_patch)
+    mock_request = MagicMock()
+    mock_request.return_value = FakeResponse(200, '{"weight": 100.0}')
+    monkeypatch.setattr('requests.get', mock_request)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
     lizzy.get_traffic('lizzy-test')
 
     header = make_header('7E5770K3N')
-    mock_patch.assert_called_once_with(
+    mock_request.assert_called_once_with(
         'https://lizzy.example/api/stacks/lizzy-test/traffic', None,
         headers=header, verify=False)
+
+    mock_request.reset_mock()
+    mock_request.return_value = FakeResponse(200, '["stack1","stack2"]')
+
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    lizzy.get_traffic('574CC', region='ab-foo-7')
+
+    header = make_header('7E5770K3N')
+    url = 'https://lizzy.example/api/stacks/574CC/traffic?region=ab-foo-7'
+    mock_request.assert_called_once_with(url, None, headers=header,
+                                         verify=False)
 
 
 @pytest.mark.parametrize(

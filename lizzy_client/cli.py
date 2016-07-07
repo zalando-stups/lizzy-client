@@ -307,12 +307,19 @@ def list_stacks(stack_ref: List[str], all: bool, remote: str, region: str,
 @main.command('traffic')
 @click.argument('stack_name')
 @click.argument('stack_version', required=False)
-@click.argument('percentage', type=click.IntRange(0, 100, clamp=True), required=False)
+@click.argument('percentage',
+                type=click.IntRange(0, 100, clamp=True),
+                required=False)
+@region_option
 @remote_option
 @output_option
 @display_user_friendly_agent_errors
-def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[int],
-            remote: Optional[str], output: Optional[str]):
+def traffic(stack_name: str,
+            stack_version: Optional[str],
+            percentage: Optional[int],
+            region: Optional[str],
+            remote: Optional[str],
+            output: Optional[str]):
     '''Manage stack traffic'''
     lizzy = setup_lizzy_client(remote)
 
@@ -321,9 +328,9 @@ def traffic(stack_name: str, stack_version: Optional[str], percentage: Optional[
 
         with Action('Requesting traffic info..'):
             stack_weights = []
-            for stack in lizzy.get_stacks(stack_reference):
+            for stack in lizzy.get_stacks(stack_reference, region=region):
                 stack_id = '{stack_name}-{version}'.format_map(stack)
-                traffic = lizzy.get_traffic(stack_id)
+                traffic = lizzy.get_traffic(stack_id, region=region)
                 stack_weights.append({
                     'stack_name': stack_name,
                     'version': stack['version'],

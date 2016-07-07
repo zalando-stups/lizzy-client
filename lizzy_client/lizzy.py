@@ -62,7 +62,8 @@ class Lizzy:
         request.raise_for_status()
         return request.json()
 
-    def get_stacks(self, stack_reference: Optional[List[str]]=None, region: str=None) -> list:
+    def get_stacks(self, stack_reference: Optional[List[str]]=None,
+                   region: Optional[str]=None) -> list:
         fetch_stacks_url = self.stacks_url
         query = {}
         if region:
@@ -129,8 +130,13 @@ class Lizzy:
             print(json.dumps(data, indent=4))
             raise
 
-    def get_traffic(self, stack_id: str) -> dict:
+    def get_traffic(self, stack_id: str, region: Optional[str]=None) -> dict:
         url = self.stacks_url / stack_id / 'traffic'
+        query = {}
+        if region:
+            query['region'] = region
+        url = url.with_query(query)
+
         header = make_header(self.access_token)
         response = url.get(headers=header, verify=False)
         lizzy_version = response.headers.get('X-Lizzy-Version')
