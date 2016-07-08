@@ -65,7 +65,7 @@ class FakeLizzy(Lizzy):
             pytest.fail("Arity of mocked method not compatible with implementation")
         self._delete_mock(*args, **kwargs)
 
-    def wait_for_deployment(self, stack_id: str) -> [str]:
+    def wait_for_deployment(self, stack_id: str, region=None) -> [str]:
         return ['CF:WAITING', self.final_state]
 
 
@@ -145,7 +145,7 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
-    result = runner.invoke(main, ['create', config_path, '42', '1.0'],
+    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--region', 'aa-bbbb-1'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
@@ -153,14 +153,15 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
-    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 0)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 0, region='aa-bbbb-1')
     mock_fake_lizzy._delete_mock.assert_not_called()
     FakeLizzy.reset()
 
     result = runner.invoke(main, ['create', config_path,
                                   '--keep-stacks', '0',
                                   '--traffic', '100',
-                                  '42', '1.0'],
+                                  '42', '1.0',
+                                  '--region', 'aa-bbbc-1'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
@@ -168,16 +169,16 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert 'Waiting for new stack... . . OK' in result.output
     assert 'Deployment Successful' in result.output
     assert 'kio version approve' not in result.output
-    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 100, region='aa-bbbc-1')
     assert mock_fake_lizzy._delete_mock.call_count == 3  # filter of stacks is done in the server-side
-    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s7')
-    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s42')
+    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s7', region='aa-bbbc-1')
+    mock_fake_lizzy._delete_mock.assert_any_call('stack1-s42', region='aa-bbbc-1')
     FakeLizzy.reset()
 
     # with explicit traffic
-    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--traffic', '42'],
+    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--traffic', '42', '--region', 'ab-region-1'],
                            env=FAKE_ENV, catch_exceptions=False)
-    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 42)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 42, region='ab-region-1')
     FakeLizzy.reset()
 
     result = runner.invoke(main, ['create', '-v', config_path, '42', '1.0'],
