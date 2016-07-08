@@ -52,10 +52,13 @@ class Lizzy:
         request.raise_for_status()
         return self.get_output(request)
 
-    def get_stack(self, stack_id: str) -> dict:
+    def get_stack(self, stack_id: str, region: Optional[str]=None) -> dict:
         header = make_header(self.access_token)
         url = self.stacks_url / stack_id
-        request = url.get(headers=header, verify=False)
+        query = {}
+        if region:
+            query['region'] = region
+        request = url.with_query(query).get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
@@ -148,11 +151,11 @@ class Lizzy:
         response.raise_for_status()
         return response.json()
 
-    def wait_for_deployment(self, stack_id: str) -> [str]:
+    def wait_for_deployment(self, stack_id: str, region: Optional[str]=None) -> [str]:
         retries = 3
         while retries:
             try:
-                stack = self.get_stack(stack_id)
+                stack = self.get_stack(stack_id, region=region)
                 status = stack["status"]
                 retries = 3  # reset the number of retries
                 yield status

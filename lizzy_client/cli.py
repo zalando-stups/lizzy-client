@@ -216,7 +216,7 @@ def create(definition: dict, version: str,  parameter: list,
             print()  # ensure that new states will not be printed on the same line as the action
 
         last_state = None
-        for state in lizzy.wait_for_deployment(stack_id):
+        for state in lizzy.wait_for_deployment(stack_id, region=region):
             if state != last_state and verbose:
                 click.echo(' {}'.format(state))
             else:
@@ -234,7 +234,7 @@ def create(definition: dict, version: str,  parameter: list,
     if traffic is not None:
         with Action('Requesting traffic change..'):
             try:
-                lizzy.traffic(stack_id, traffic)
+                lizzy.traffic(stack_id, traffic, region=region)
             except requests.ConnectionError as e:
                 connection_error(e, fatal=False)
             except requests.HTTPError as e:
@@ -244,7 +244,7 @@ def create(definition: dict, version: str,  parameter: list,
     if keep_stacks is not None:
         versions_to_keep = keep_stacks + 1
         try:
-            all_stacks = lizzy.get_stacks([new_stack['stack_name']])
+            all_stacks = lizzy.get_stacks([new_stack['stack_name']], region=region)
         except requests.ConnectionError as e:
             connection_error(e, fatal=False)
             error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
@@ -261,7 +261,7 @@ def create(definition: dict, version: str,  parameter: list,
                     old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
                     click.echo(' {}'.format(old_stack_id))
                     try:
-                        lizzy.delete(old_stack_id)
+                        lizzy.delete(old_stack_id, region=region)
                     except requests.ConnectionError as e:
                         connection_error(e, fatal=False)
                     except requests.HTTPError as e:
