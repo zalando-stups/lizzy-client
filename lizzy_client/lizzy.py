@@ -102,13 +102,14 @@ class Lizzy:
         header = make_header(self.access_token)
         data = {'senza_yaml': yaml.dump(senza_yaml),
                 'stack_version': stack_version,
-                'region': region,
                 'disable_rollback': disable_rollback,
                 'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'parameters': parameters,
                 'tags': tags}
+        if region:
+            data['region'] = region
 
         request = self.stacks_url.post(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
