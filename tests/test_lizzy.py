@@ -180,10 +180,14 @@ def test_new_stack(monkeypatch,
             'parameters': parameters,
             'disable_rollback': disable_rollback,
             'dry_run': dry_run,
-            'region': region,
             'senza_yaml': "{MyDefinition: Values}\n",
             'stack_version': version,
             'tags': tags}
+
+    # only pass region when it is not None
+    if region:
+        data['region'] = region
+
     mock_post.assert_called_once_with('https://lizzy.example/api/stacks',
                                       headers=header,
                                       json=data,
