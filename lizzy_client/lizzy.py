@@ -1,34 +1,13 @@
-"""
-Copyright 2015 Zalando SE
+import json
+import time
+from typing import Dict, List, Optional
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
-License. You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
- language governing permissions and limitations under the License.
-"""
-
-from typing import Optional, List
+import requests
+import yaml
 from clickclick import warning
 from urlpath import URL
-from .version import VERSION
-import json
-import requests
-import time
 
-FINAL_STATES = ["CF:CREATE_COMPLETE",
-                "CF:CREATE_FAILED",
-                "CF:DELETE_COMPLETE",
-                "CF:DELETE_FAILED",
-                "CF:DELETE_IN_PROGRESS"
-                "CF:ROLLBACK_COMPLETE",
-                "CF:ROLLBACK_FAILED",
-                "CF:ROLLBACK_IN_PROGRESS",
-                "LIZZY:ERROR",
-                "LIZZY:REMOVED"]
+from .version import VERSION
 
 
 def make_header(access_token: str):
@@ -40,85 +19,114 @@ def make_header(access_token: str):
 
 class Lizzy:
     def __init__(self, base_url: str, access_token: str):
-        self.base_url = URL(base_url.rstrip('/'))
+        base_url = URL(base_url.rstrip('/'))
+        self.api_url = base_url if base_url.path == '/api' else base_url / 'api'
         self.access_token = access_token
+
+    @classmethod
+    def get_output(cls, response: requests.Response) -> str:
+        """
+        Extracts the senza cli output from the response
+        """
+        output = response.headers['X-Lizzy-Output']  # type: str
+        output = output.replace('\\n', '\n')  # unescape new lines
+        lines = ('[AGENT] {}'.format(line) for line in output.splitlines())
+        return '\n'.join(lines)
 
     @property
     def stacks_url(self) -> URL:
-        return self.base_url / 'stacks'
+        return self.api_url / 'stacks'
 
-    def delete(self, stack_id: str):
+    def delete(self, stack_id: str, region: str=None, dry_run: bool=False):
         url = self.stacks_url / stack_id
 
         header = make_header(self.access_token)
-        request = url.delete(headers=header, verify=False)
+        data = {"dry_run": dry_run}
+        if region:
+            data["region"] = region
+
+        request = url.delete(headers=header, json=data, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
+        return self.get_output(request)
 
-    def get_stack(self, stack_id: str) -> dict:
+    def get_stack(self, stack_id: str, region: Optional[str]=None) -> dict:
         header = make_header(self.access_token)
         url = self.stacks_url / stack_id
-        request = url.get(headers=header, verify=False)
+        query = {}
+        if region:
+            query['region'] = region
+        request = url.with_query(query).get(headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return request.json()
 
-    def get_stacks(self) -> list:
-        header = make_header(self.access_token)
-        request = self.stacks_url.get(headers=header, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
+    def get_stacks(self, stack_reference: Optional[List[str]]=None,
+                   region: Optional[str]=None) -> list:
+        fetch_stacks_url = self.stacks_url
+        query = {}
+        if region:
+            query['region'] = region
+        if stack_reference:
+            query['references'] = ','.join(stack_reference)
+
+        fetch_stacks_url = fetch_stacks_url.with_query(query)
+
+        response = fetch_stacks_url.get(headers=make_header(self.access_token),
+                                        verify=False)
+
+        lizzy_version = response.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
-        request.raise_for_status()
-        return request.json()
+
+        response.raise_for_status()
+        return response.json()
 
     def new_stack(self,
-                  image_version: str,
                   keep_stacks: int,
                   new_traffic: int,
-                  senza_yaml_path: str,
-                  stack_version: Optional[str],
-                  application_version: Optional[str],
+                  senza_yaml: dict,
+                  stack_version: str,
                   disable_rollback: bool,
-                  parameters: List[str]) -> str:
+                  parameters: List[str],
+                  region: Optional[str],
+                  dry_run: bool,
+                  tags: List[str]) -> (Dict[str, str], str):  # TODO put arguments in a more logical order
         """
         Requests a new stack.
         """
         header = make_header(self.access_token)
-
-        with open(senza_yaml_path) as senza_yaml_file:
-            senza_yaml = senza_yaml_file.read()
-
-        data = {'image_version': image_version,
+        data = {'senza_yaml': yaml.dump(senza_yaml),
+                'stack_version': stack_version,
                 'disable_rollback': disable_rollback,
+                'dry_run': dry_run,
                 'keep_stacks': keep_stacks,
                 'new_traffic': new_traffic,
                 'parameters': parameters,
-                'senza_yaml': senza_yaml}
+                'tags': tags}
+        if region:
+            data['region'] = region
 
-        if application_version:
-            data['application_version'] = application_version
-
-        if stack_version:
-            data['stack_version'] = stack_version
-
-        request = self.stacks_url.post(data=json.dumps(data, sort_keys=True), headers=header, verify=False)
+        request = self.stacks_url.post(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
-        return request.json()
+        return request.json(), self.get_output(request)
 
-    def traffic(self, stack_id: str, percentage: int):
+    def traffic(self, stack_id: str, percentage: int,
+                region: Optional[str]=None):
         url = self.stacks_url / stack_id
         data = {"new_traffic": percentage}
+        if region:
+            data['region'] = region
 
         header = make_header(self.access_token)
-        request = url.patch(data=json.dumps(data), headers=header, verify=False)
+        request = url.patch(json=data, headers=header, verify=False)
         lizzy_version = request.headers.get('X-Lizzy-Version')
         if lizzy_version and lizzy_version != VERSION:
             warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
@@ -129,15 +137,30 @@ class Lizzy:
             print(json.dumps(data, indent=4))
             raise
 
-    def wait_for_deployment(self, stack_id: str) -> [str]:
+    def get_traffic(self, stack_id: str, region: Optional[str]=None) -> dict:
+        url = self.stacks_url / stack_id / 'traffic'
+        query = {}
+        if region:
+            query['region'] = region
+        url = url.with_query(query)
+
+        header = make_header(self.access_token)
+        response = url.get(headers=header, verify=False)
+        lizzy_version = response.headers.get('X-Lizzy-Version')
+        if lizzy_version and lizzy_version != VERSION:
+            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
+        response.raise_for_status()
+        return response.json()
+
+    def wait_for_deployment(self, stack_id: str, region: Optional[str]=None) -> [str]:
         retries = 3
         while retries:
             try:
-                stack = self.get_stack(stack_id)
+                stack = self.get_stack(stack_id, region=region)
                 status = stack["status"]
                 retries = 3  # reset the number of retries
                 yield status
-                if status in FINAL_STATES:
+                if status.endswith('_FAILED') or status.endswith('_COMPLETE'):
                     return status
             except Exception as e:
                 retries -= 1

@@ -15,11 +15,11 @@ Create a new stack
 ------------------
 
 Use the `create` subcommand to create stacks. The syntax is
-`lizzy create [OPTIONS] DEFINITION IMAGE_VERSION`:
+`lizzy create [OPTIONS] DEFINITION STACK_VERSION IMAGE_VERSION`:
 
 .. code-block::
 
-    $ lizzy create  senza.yaml 1.0
+    $ lizzy create senza.yaml 42 1.0
 
 For see more options use `lizzy create --help`.
 
@@ -57,11 +57,13 @@ Configuration
 -------------
 Lizzy Client can be configured with environmental variables:
 
-* `LIZZY_URL` — location of Lizzy (`https://lizzy.example.com/`)
+* `LIZZY_URL` — URL of Lizzy Agent (`https://lizzy.example.com/`)
 * `LIZZY_SCOPES` — should be `uid`
 * `OAUTH2_ACCESS_TOKEN_URL` — Oauth2 Access Token Url
 * `CREDENTIALS_DIR` — berry credentials folder, using the Zalando Stups' infrastructure, and by default
   `/meta/credentials`
+
+The agent URL can also be set with the `--remote` flag
 
 
 Authentication
