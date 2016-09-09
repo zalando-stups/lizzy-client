@@ -74,7 +74,6 @@ setup(
     ],
     long_description='Lizzy-client',
     entry_points={'console_scripts': ['lizzy = lizzy_client.cli:main',
-                                      'senza = lizzy_client.cli:main',  # compability with senza
                                       'please = lizzy_client.cli:main',
                                       'pretty-please = lizzy_client.cli:main']},
 )
