@@ -29,7 +29,7 @@ def read_parameter_file(parameter_file):  # copy pasted from Senza
     except yaml.YAMLError as e:
         raise click.UsageError('Error {}'.format(e))
 
-    return tuple(paras)
+    return paras
 
 
 def get_stack_refs(refs: list):  # copy pasted from Senza
