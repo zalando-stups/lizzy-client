@@ -206,6 +206,73 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert result.exit_code == 1
 
 
+def test_create_with_parameters(mock_get_token, mock_fake_lizzy,
+                                mock_lizzy_get, mock_lizzy_post: MagicMock):
+    runner = CliRunner()
+    result = runner.invoke(main, ['create', config_path,
+                                  '42', '1.0', 'param0=value0',
+                                  '--region', 'aa-bbbb-1'],
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert 'Fetching authentication token.. . OK' in result.output
+    assert 'Requesting new stack.. OK' in result.output
+    assert 'Stack ID: stack1-d42' in result.output
+    assert 'Waiting for new stack... . . OK' in result.output
+    assert 'Deployment Successful' in result.output
+    assert 'kio version approve' not in result.output
+    mock_lizzy_post.assert_called_once_with('https://localhost/stacks',
+                                            data=None,
+                                            headers={
+                                                'Content-type': 'application/json',
+                                                'Authorization': 'Bearer TOKEN'
+                                            },
+                                            json={
+                                                'keep_stacks': None,
+                                                'disable_rollback': False,
+                                                'region': 'aa-bbbb-1',
+                                                'parameters': ['1.0',
+                                                               'param0=value0'],
+                                                'dry_run': False,
+                                                'senza_yaml': 'SenzaInfo: [Something]\n',
+                                                'new_traffic': 0,
+                                                'stack_version': '42',
+                                                'tags': ()
+                                            },
+                                            verify=False)
+    FakeLizzy.traffic.assert_called_once_with('stack1-d42', 0, region='aa-bbbb-1')
+    mock_fake_lizzy._delete_mock.assert_not_called()
+    mock_lizzy_post.reset_mock()
+    FakeLizzy.reset()
+
+    with tempfile.NamedTemporaryFile() as temporary_file:
+        temporary_file.write(b"param1: value1")
+        temporary_file.flush()
+        result = runner.invoke(main, ['create', config_path,
+                                      '--parameter-file', temporary_file.name,
+                                      '42', '1.0', 'param0=value0',
+                                      '--region', 'aa-bbbb-1'],
+                               env=FAKE_ENV, catch_exceptions=False)
+    mock_lizzy_post.assert_called_once_with('https://localhost/stacks',
+                                            data=None,
+                                            headers={
+                                                'Content-type': 'application/json',
+                                                'Authorization': 'Bearer TOKEN'
+                                            },
+                                            json={
+                                                'keep_stacks': None,
+                                                'disable_rollback': False,
+                                                'region': 'aa-bbbb-1',
+                                                'parameters': ['1.0',
+                                                               'param0=value0',
+                                                               'param1=value1'],
+                                                'dry_run': False,
+                                                'senza_yaml': 'SenzaInfo: [Something]\n',
+                                                'new_traffic': 0,
+                                                'stack_version': '42',
+                                                'tags': ()
+                                            },
+                                            verify=False)
+
+
 @pytest.mark.parametrize(
     "stack_name, stack_version, region, dry_run",
     [
@@ -284,7 +351,9 @@ def test_delete_multiple_force(mock_get_token, mock_fake_lizzy,
 def test_traffic(mock_get_token, mock_fake_lizzy):
     # Normal call to change traffic
     runner = CliRunner()
-    result = runner.invoke(main, ['traffic', 'lizzy-test', 'v10', '90'], env=FAKE_ENV, catch_exceptions=False)
+    result = runner.invoke(main, ['traffic', 'lizzy-test', 'v10', '90'],
+                           env=FAKE_ENV,
+                           catch_exceptions=False)
     assert 'Requesting traffic change.. OK' in result.output
     assert result.exit_code == 0
     mock_fake_lizzy.traffic.assert_called_once_with('lizzy-test-v10', 90,

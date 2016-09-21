@@ -74,7 +74,7 @@ class Lizzy:
         if stack_reference:
             query['references'] = ','.join(stack_reference)
 
-        fetch_stacks_url = fetch_stacks_url.with_query(query)
+        fetch_stacks_url = fetch_stacks_url.with_query(query)  # type: URL
 
         response = fetch_stacks_url.get(headers=make_header(self.access_token),
                                         verify=False)
