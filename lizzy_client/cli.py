@@ -18,7 +18,7 @@ from .arguments import (DefinitionParamType, dry_run_option, output_option,
 from .configuration import Configuration
 from .lizzy import Lizzy
 from .token import get_token
-from .utils import get_stack_refs
+from .utils import get_stack_refs, read_parameter_file
 from .version import VERSION
 
 STYLES = {
@@ -170,10 +170,13 @@ def setup_lizzy_client(explicit_agent_url=None):
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
 @click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
+@click.option('--parameter-file',
+              help='Config file for params',
+              metavar='PATH')
 @remote_option
 @click.option('--verbose', '-v', is_flag=True)
 @display_user_friendly_agent_errors
-def create(definition: dict, version: str,  parameter: list,
+def create(definition: dict, version: str,  parameter: tuple,
            region: str,
            disable_rollback: bool,
            dry_run: bool,
@@ -183,10 +186,15 @@ def create(definition: dict, version: str,  parameter: list,
            traffic: int,
            verbose: bool,
            remote: str,
+           parameter_file: Optional[str]
            ):
-    """Create a new Cloud Formation stack from the given Senza definition file"""
+    """
+    Create a new Cloud Formation stack from the given Senza definition file
+    """
     lizzy = setup_lizzy_client(remote)
-    parameter = parameter or []
+    parameter = list(parameter) or []
+    if parameter_file:
+        parameter.extend(read_parameter_file(parameter_file))
 
     if not force:  # pragma: no cover
         # supporting artifact checking would imply copying a large amount of code
