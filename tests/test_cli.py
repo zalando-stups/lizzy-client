@@ -80,7 +80,7 @@ def mock_lizzy_get(monkeypatch):
     stack2 = {'stack_name': 'stack2',
               'version': 's2',
               "description": "stack1 (ImageVersion: 257)",
-              'status': 'CF:TEST',
+              'status': 'UPDATE_COMPLETE',
               'creation_time': '2015-12-01T12:00:00Z'}
 
     stack3 = {'stack_name': 'stack1',
@@ -348,7 +348,7 @@ def test_list(mock_get_token, mock_lizzy_get):
     stack2 = {'stack_name': 'stack2',
               'version': 's2',
               "description": "stack1 (ImageVersion: 257)",
-              'status': 'CF:TEST',
+              'status': 'UPDATE_COMPLETE',
               'creation_time': 1448971200.0}
 
     stack3 = {'stack_name': 'stack1',
