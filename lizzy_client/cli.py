@@ -250,9 +250,11 @@ def create(definition: dict, version: str,  parameter: list,
             except requests.ConnectionError as e:
                 connection_error(e, fatal=False)
                 error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+                exit(1)
             except requests.HTTPError as e:
                 agent_error(e, fatal=False)
                 error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+                exit(1)
             else:
                 sorted_stacks = sorted(all_stacks,
                                        key=lambda stack: stack['creation_time'])
@@ -276,7 +278,6 @@ def create(definition: dict, version: str,  parameter: list,
                                 old_stack_id, old_stack['status']))
                 if stacks_to_remove_counter > 0:
                     time.sleep(5)
-
 
 @main.command('list')
 @click.argument('stack_ref', nargs=-1)
