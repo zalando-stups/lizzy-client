@@ -7,8 +7,6 @@ import yaml
 from clickclick import warning
 from urlpath import URL
 
-from .version import VERSION
-
 
 def make_header(access_token: str):
     headers = dict()
@@ -46,9 +44,6 @@ class Lizzy:
             data["region"] = region
 
         request = url.delete(headers=header, json=data, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return self.get_output(request)
 
@@ -59,9 +54,6 @@ class Lizzy:
         if region:
             query['region'] = region
         request = url.with_query(query).get(headers=header, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return request.json()
 
@@ -78,11 +70,6 @@ class Lizzy:
 
         response = fetch_stacks_url.get(headers=make_header(self.access_token),
                                         verify=False)
-
-        lizzy_version = response.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
-
         response.raise_for_status()
         return response.json()
 
@@ -112,9 +99,6 @@ class Lizzy:
             data['region'] = region
 
         request = self.stacks_url.post(json=data, headers=header, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         request.raise_for_status()
         return request.json(), self.get_output(request)
 
@@ -127,9 +111,6 @@ class Lizzy:
 
         header = make_header(self.access_token)
         request = url.patch(json=data, headers=header, verify=False)
-        lizzy_version = request.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         try:
             request.raise_for_status()
         except requests.RequestException:
@@ -146,9 +127,6 @@ class Lizzy:
 
         header = make_header(self.access_token)
         response = url.get(headers=header, verify=False)
-        lizzy_version = response.headers.get('X-Lizzy-Version')
-        if lizzy_version and lizzy_version != VERSION:
-            warning("Version Mismatch (Client: {}, Server: {})".format(VERSION, lizzy_version))
         response.raise_for_status()
         return response.json()
 
