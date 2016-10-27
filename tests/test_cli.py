@@ -145,7 +145,7 @@ def test_fetch_token(mock_get_token):
 
 def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post):
     runner = CliRunner()
-    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--region', 'aa-bbbb-1'],
+    result = runner.invoke(main, ['create', config_path, '42', '1.0', '--region', 'aa-bbbb-1', '--traffic', '0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
@@ -205,13 +205,47 @@ def test_create(mock_get_token, mock_fake_lizzy, mock_lizzy_get, mock_lizzy_post
     assert '[AGENT] Not Found' in result.output
     assert result.exit_code == 1
 
+def test_default_does_not_call_traffic(mock_get_token, mock_fake_lizzy,
+                                       mock_lizzy_get, mock_lizzy_post: MagicMock):
+    runner = CliRunner()
+    result = runner.invoke(main, ['create', config_path,
+                                  '42', '1.0', '--region', 'aa-bbbb-1'],
+                           env=FAKE_ENV, catch_exceptions=False)
+    assert 'Fetching authentication token.. . OK' in result.output
+    assert 'Requesting new stack.. OK' in result.output
+    assert 'Stack ID: stack1-d42' in result.output
+    assert 'Waiting for new stack... . . OK' in result.output
+    assert 'Deployment Successful' in result.output
+    assert 'kio version approve' not in result.output
+    mock_lizzy_post.assert_called_once_with('https://localhost/stacks',
+                                            data=None,
+                                            headers={
+                                                'Content-type': 'application/json',
+                                                'Authorization': 'Bearer TOKEN'
+                                            },
+                                            json={
+                                                'keep_stacks': None,
+                                                'disable_rollback': False,
+                                                'region': 'aa-bbbb-1',
+                                                'parameters': ['1.0', ],
+                                                'dry_run': False,
+                                                'senza_yaml': 'SenzaInfo: [Something]\n',
+                                                'new_traffic': None,
+                                                'stack_version': '42',
+                                                'tags': ()
+                                            },
+                                            verify=False)
+    FakeLizzy.traffic.assert_not_called()
+    mock_fake_lizzy._delete_mock.assert_not_called()
+    mock_lizzy_post.reset_mock()
+    FakeLizzy.reset()
 
 def test_create_with_parameters(mock_get_token, mock_fake_lizzy,
                                 mock_lizzy_get, mock_lizzy_post: MagicMock):
     runner = CliRunner()
     result = runner.invoke(main, ['create', config_path,
                                   '42', '1.0', 'param0=value0',
-                                  '--region', 'aa-bbbb-1'],
+                                  '--region', 'aa-bbbb-1', '--traffic', '0'],
                            env=FAKE_ENV, catch_exceptions=False)
     assert 'Fetching authentication token.. . OK' in result.output
     assert 'Requesting new stack.. OK' in result.output
@@ -249,7 +283,7 @@ def test_create_with_parameters(mock_get_token, mock_fake_lizzy,
         result = runner.invoke(main, ['create', config_path,
                                       '--parameter-file', temporary_file.name,
                                       '42', '1.0', 'param0=value0',
-                                      '--region', 'aa-bbbb-1'],
+                                      '--region', 'aa-bbbb-1', '--traffic', '0'],
                                env=FAKE_ENV, catch_exceptions=False)
     mock_lizzy_post.assert_called_once_with('https://localhost/stacks',
                                             data=None,
