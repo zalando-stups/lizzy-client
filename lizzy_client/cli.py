@@ -168,7 +168,7 @@ def setup_lizzy_client(explicit_agent_url=None):
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
 @click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
 @click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
-@click.option('--traffic', default=0, type=click.IntRange(0, 100, clamp=True),
+@click.option('--traffic', type=click.IntRange(0, 100, clamp=True),
               help="Percentage of traffic for the new stack")
 @click.option('--parameter-file',
               help='Config file for params',
