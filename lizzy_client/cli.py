@@ -349,14 +349,15 @@ def traffic(stack_name: str,
         with Action('Requesting traffic info..'):
             stack_weights = []
             for stack in lizzy.get_stacks(stack_reference, region=region):
-                stack_id = '{stack_name}-{version}'.format_map(stack)
-                traffic = lizzy.get_traffic(stack_id, region=region)
-                stack_weights.append({
-                    'stack_name': stack_name,
-                    'version': stack['version'],
-                    'identifier': stack_id,
-                    'weight%': traffic['weight']
-                })
+                if stack['status'].endswith('_COMPLETE'):
+                    stack_id = '{stack_name}-{version}'.format_map(stack)
+                    traffic = lizzy.get_traffic(stack_id, region=region)
+                    stack_weights.append({
+                        'stack_name': stack_name,
+                        'version': stack['version'],
+                        'identifier': stack_id,
+                        'weight%': traffic['weight']
+                    })
         cols = 'stack_name version identifier weight%'.split()
         with OutputFormat(output):
             print_table(cols,
