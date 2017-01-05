@@ -396,7 +396,7 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
 
     # Use traffic command to print the traffic of instances
     with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
-            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+            {'stack_name': 'lizzy-test', 'version': 'v1', 'status': 'UPDATE_COMPLETE'}]), patch.object(
                 mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
         runner = CliRunner()
         result = runner.invoke(main, ['traffic', 'lizzy-test'], env=FAKE_ENV,
@@ -410,7 +410,7 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
 
     # Use traffic command to print the traffic of instances in a different region
     with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
-            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+            {'stack_name': 'lizzy-test', 'version': 'v1', 'status': 'UPDATE_COMPLETE'}]), patch.object(
                 mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
         runner = CliRunner()
         result = runner.invoke(main, ['traffic', 'lizzy-test', '--region', 'ab-bar-7'],
@@ -426,7 +426,7 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
     # as a stack filter (on the Senza cli side in the agent) and
     # not as traffic change percentage.
     with patch.object(mock_fake_lizzy, 'get_stacks', return_value=[
-            {'stack_name': 'lizzy-test', 'version': 'v1'}]), patch.object(
+            {'stack_name': 'lizzy-test', 'version': 'v1', 'status': 'UPDATE_COMPLETE'}]), patch.object(
                 mock_fake_lizzy, 'get_traffic', return_value={'weight': 100}):
         runner = CliRunner()
         result = runner.invoke(main, ['traffic', 'lizzy-test', '90'], env=FAKE_ENV,
