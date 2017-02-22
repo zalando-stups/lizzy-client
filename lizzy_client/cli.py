@@ -50,6 +50,13 @@ TITLES = {
     'version': 'Ver.'
 }
 
+COMPLETE_STATES = [
+    'CREATE_COMPLETE',
+    'ROLLBACK_COMPLETE',
+    'UPDATE_COMPLETE',
+    'UPDATE_ROLLBACK_COMPLETE'
+]
+
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
 main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
@@ -272,7 +279,7 @@ def create(definition: dict, version: str,  parameter: tuple,
                     print()
                     for old_stack in stacks_to_remove:
                         old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
-                        if old_stack['status'] in ['UPDATE_COMPLETE', 'CREATE_COMPLETE']:
+                        if old_stack['status'] in COMPLETE_STATES:
                             click.echo(' {}'.format(old_stack_id))
                             try:
                                 lizzy.delete(old_stack_id, region=region)
