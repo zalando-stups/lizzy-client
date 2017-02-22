@@ -1,3 +1,10 @@
-from lizzy_client.cli import main
+from .cli import main
+from .metrics import report_metric
 
-main()
+try:
+    main()
+except (Exception, SystemExit):
+    report_metric("bus.lizzy-client.failed", 1)
+    raise
+else:
+    report_metric("bus.lizzy-client.success", 1)
