@@ -300,7 +300,6 @@ def create(definition: dict, version: str,  parameter: tuple,
             click.echo('Timeout waiting for related stacks to be ready.')
 
 
-
 @main.command('list')
 @click.argument('stack_ref', nargs=-1)
 @click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
