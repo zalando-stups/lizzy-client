@@ -1,6 +1,8 @@
+import datetime
 import os.path
 import time
 from functools import wraps
+from json.decoder import JSONDecodeError
 from typing import List, Optional
 
 import click
@@ -76,8 +78,12 @@ def agent_error(e: requests.HTTPError, fatal=True):
     """
     Prints an agent error and exits
     """
-    data = e.response.json()
-    details = data['detail']  # type: str
+    try:
+        data = e.response.json()
+        details = data['detail']  # type: str
+    except JSONDecodeError:
+        data = e.response.text
+        details = data
 
     if details:
         lines = ('[AGENT] {}'.format(line) for line in details.splitlines())
@@ -174,9 +180,10 @@ def setup_lizzy_client(explicit_agent_url=None):
 @dry_run_option
 @click.option('-f', '--force', is_flag=True, help='Ignore failing validation checks')
 @click.option('-t', '--tag', help='Tags to associate with the stack.', multiple=True)
-@click.option('--keep-stacks', type=int, help="Number of old stacks to keep")
+@click.option('--timeout', type=int, default=120, help='Total seconds to wait for related stacks to be ready')
+@click.option('--keep-stacks', type=int, help='Number of old stacks to keep')
 @click.option('--traffic', type=click.IntRange(0, 100, clamp=True),
-              help="Percentage of traffic for the new stack")
+              help='Percentage of traffic for the new stack')
 @click.option('--parameter-file',
               help='Config file for params',
               metavar='PATH')
@@ -189,6 +196,7 @@ def create(definition: dict, version: str,  parameter: tuple,
            dry_run: bool,
            force: bool,
            tag: List[str],
+           timeout: int,
            keep_stacks: Optional[int],
            traffic: int,
            verbose: bool,
@@ -259,7 +267,8 @@ def create(definition: dict, version: str,  parameter: tuple,
     if keep_stacks is not None:
         versions_to_keep = keep_stacks + 1
         stacks_to_remove_counter = 1
-        while stacks_to_remove_counter > 0:
+        end_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
+        while stacks_to_remove_counter > 0 and datetime.datetime.utcnow() <= end_time:
             try:
                 all_stacks = lizzy.get_stacks([new_stack['stack_name']], region=region)
             except requests.ConnectionError as e:
@@ -293,6 +302,9 @@ def create(definition: dict, version: str,  parameter: tuple,
                                 old_stack_id, old_stack['status']))
                 if stacks_to_remove_counter > 0:
                     time.sleep(5)
+
+        if datetime.datetime.utcnow() <= end_time:
+            click.echo('Timeout waiting for related stacks to be ready.')
 
 
 @main.command('list')
