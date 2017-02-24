@@ -1,6 +1,7 @@
 import datetime
 import os.path
 import time
+import traceback
 from functools import wraps
 from json.decoder import JSONDecodeError
 from typing import List, Optional
@@ -14,6 +15,7 @@ from clickclick import (Action, AliasedGroup, OutputFormat, error, fatal_error,
 from tokens import InvalidCredentialsError
 from yaml.error import YAMLError
 
+from . import metrics
 from .arguments import (DefinitionParamType, dry_run_option, output_option,
                         region_option, remote_option, validate_version,
                         watch_option)
@@ -65,7 +67,7 @@ main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
 
 
 def connection_error(e: requests.ConnectionError, fatal=True):
-    reason = e.args[0].reason   # type: requests.packages.urllib3.exceptions.NewConnectionError
+    reason = e.args[0].reason  # type: requests.packages.urllib3.exceptions.NewConnectionError
     _, pretty_reason = str(reason).split(':', 1)
     msg = ' {}'.format(pretty_reason)
     if fatal:
@@ -106,10 +108,12 @@ def display_user_friendly_agent_errors(func):
             connection_error(e)
         except requests.HTTPError as e:
             agent_error(e)
+
     return _wrapper
 
 
-def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:  # TODO fix scopes to be really a list
+# TODO fix scopes to be really a list
+def fetch_token(token_url: str, scopes: str, credentials_dir: str) -> str:
     """
     Common function to fetch token
     :return:
@@ -144,7 +148,9 @@ def parse_stack_refs(stack_references: List[str]) -> List[str]:
                     data = yaml.safe_load(fd)
                 current = data['SenzaInfo']['StackName']
             except (KeyError, TypeError, YAMLError):
-                raise click.UsageError('Invalid senza definition {}'.format(current))
+                raise click.UsageError(
+                    'Invalid senza definition {}'.format(current)
+                )
         stack_names.append(current)
     return stack_names
 
@@ -190,7 +196,7 @@ def setup_lizzy_client(explicit_agent_url=None):
 @remote_option
 @click.option('--verbose', '-v', is_flag=True)
 @display_user_friendly_agent_errors
-def create(definition: dict, version: str,  parameter: tuple,
+def create(definition: dict, version: str, parameter: tuple,
            region: str,
            disable_rollback: bool,
            dry_run: bool,
@@ -215,7 +221,8 @@ def create(definition: dict, version: str,  parameter: tuple,
         # supporting artifact checking would imply copying a large amount of code
         # from senza, so it should be considered out of scope until senza
         # and lizzy client are merged
-        warning("WARNING: Artifact checking is still not supported by lizzy-client.")
+        warning("WARNING: "
+                "Artifact checking is still not supported by lizzy-client.")
 
     with Action('Requesting new stack..') as action:
         new_stack, output = lizzy.new_stack(keep_stacks, traffic,
@@ -248,7 +255,8 @@ def create(definition: dict, version: str,  parameter: tuple,
 
         # TODO be prepared to handle all final AWS CF states
         if last_state == 'ROLLBACK_COMPLETE':
-            fatal_error('Stack was rollback after deployment. Check your application log for possible reasons.')
+            fatal_error(
+                'Stack was rollback after deployment. Check your application log for possible reasons.')
         elif last_state != 'CREATE_COMPLETE':
             fatal_error('Deployment failed: {}'.format(last_state))
 
@@ -270,14 +278,17 @@ def create(definition: dict, version: str,  parameter: tuple,
         end_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
         while stacks_to_remove_counter > 0 and datetime.datetime.utcnow() <= end_time:
             try:
-                all_stacks = lizzy.get_stacks([new_stack['stack_name']], region=region)
+                all_stacks = lizzy.get_stacks([new_stack['stack_name']],
+                                              region=region)
             except requests.ConnectionError as e:
                 connection_error(e, fatal=False)
-                error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+                error("Failed to fetch old stacks. "
+                      "Old stacks WILL NOT BE DELETED")
                 exit(1)
             except requests.HTTPError as e:
                 agent_error(e, fatal=False)
-                error("Failed to fetch old stacks. Old stacks WILL NOT BE DELETED")
+                error("Failed to fetch old stacks. "
+                      "Old stacks WILL NOT BE DELETED")
                 exit(1)
             else:
                 sorted_stacks = sorted(all_stacks,
@@ -287,7 +298,8 @@ def create(definition: dict, version: str,  parameter: tuple,
                 with Action('Deleting old stacks..'):
                     print()
                     for old_stack in stacks_to_remove:
-                        old_stack_id = '{stack_name}-{version}'.format_map(old_stack)
+                        old_stack_id = '{stack_name}-{version}'.format_map(
+                            old_stack)
                         if old_stack['status'] in COMPLETE_STATES:
                             click.echo(' {}'.format(old_stack_id))
                             try:
@@ -298,8 +310,9 @@ def create(definition: dict, version: str,  parameter: tuple,
                             except requests.HTTPError as e:
                                 agent_error(e, fatal=False)
                         else:
-                            click.echo(' > {} current status is {} trying again later'.format(
-                                old_stack_id, old_stack['status']))
+                            click.echo(' > {} current status is {} trying '
+                                       'again later'.format(old_stack_id,
+                                                            old_stack['status']))
                 if stacks_to_remove_counter > 0:
                     time.sleep(5)
 
@@ -309,7 +322,8 @@ def create(definition: dict, version: str,  parameter: tuple,
 
 @main.command('list')
 @click.argument('stack_ref', nargs=-1)
-@click.option('--all', is_flag=True, help='Show all stacks, including deleted ones')
+@click.option('--all', is_flag=True,
+              help='Show all stacks, including deleted ones')
 @remote_option
 @region_option
 @watch_option
@@ -333,8 +347,9 @@ def list_stacks(stack_ref: List[str], all: bool, remote: str, region: str,
 
         rows.sort(key=lambda x: (x['stack_name'], x['version']))
         with OutputFormat(output):
-            print_table('stack_name version status creation_time description'.split(),
-                        rows, styles=STYLES, titles=TITLES)
+            print_table(
+                'stack_name version status creation_time description'.split(),
+                rows, styles=STYLES, titles=TITLES)
 
         if watch:  # pragma: no cover
             time.sleep(watch)
@@ -391,7 +406,8 @@ def traffic(stack_name: str,
 @click.argument('stack_ref', nargs=-1)
 @region_option
 @dry_run_option
-@click.option('-f', '--force', is_flag=True, help='Allow deleting multiple stacks')
+@click.option('-f', '--force', is_flag=True,
+              help='Allow deleting multiple stacks')
 @remote_option
 @display_user_friendly_agent_errors
 def delete(stack_ref: List[str],
@@ -406,8 +422,9 @@ def delete(stack_ref: List[str],
     # TODO Lizzy list (stack_refs) to see if it actually matches more than one stack
     # to match senza behaviour
     if (not all_with_version and not dry_run and not force):
-        fatal_error('Error: {} matching stacks found. '.format(len(stack_refs)) +
-                    'Please use the "--force" flag if you really want to delete multiple stacks.')
+        fatal_error(
+            'Error: {} matching stacks found. '.format(len(stack_refs)) +
+            'Please use the "--force" flag if you really want to delete multiple stacks.')
 
     # TODO pass force option to agent
 
@@ -418,7 +435,8 @@ def delete(stack_ref: List[str],
         else:
             stack_id = stack.name
 
-        with Action("Requesting stack '{stack_id}' deletion..", stack_id=stack_id):
+        with Action("Requesting stack '{stack_id}' deletion..",
+                    stack_id=stack_id):
             output = lizzy.delete(stack_id, region=region, dry_run=dry_run)
 
     print(output)
@@ -430,3 +448,35 @@ def version():
     Prints Lizzy Client's version
     """
     print('Lizzy Client', VERSION)
+
+
+@main.command()
+def troubleshooting():
+    configuration = Configuration()
+    print("Metrics Available:", '✓' if metrics.METRICZ_AVAILABLE else '✕')
+    if metrics.METRICZ_AVAILABLE:
+        try:
+            token_url = configuration.token_url
+        except AttributeError:
+            token_url = "✕"
+        print('  Oauth2 Access Token URL:', token_url)
+
+        print('  Credentials Dir:', configuration.credentials_dir)
+
+        try:
+            kairosdb_url = configuration.kairosdb_url
+        except AttributeError:
+            kairosdb_url = "✕"
+
+        print('  KairosDB URL:', kairosdb_url)
+
+        try:
+            metrics.report_metric('bus.lizzy.test_metric', 1, False)
+        except Exception:
+            tb = traceback.format_exc()
+            idented = '\n'.join(['    {}'.format(line)
+                                 for line
+                                 in tb.splitlines()])
+            print("  Reporting successful: ✕\n{}".format(idented))
+        else:
+            print("  Reporting successful: ✓")

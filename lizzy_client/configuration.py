@@ -19,3 +19,4 @@ class Configuration:
     scopes = Str('LIZZY_SCOPES', 'uid')
     token_url = Str('OAUTH2_ACCESS_TOKEN_URL')
     credentials_dir = Str('CREDENTIALS_DIR', '/meta/credentials')
+    kairosdb_url = Str('KAIROSDB_URL')

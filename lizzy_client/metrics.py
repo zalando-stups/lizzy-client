@@ -1,6 +1,6 @@
 """
 Optional metricz
-This module only works if metriz is installed
+This module only works if metricz is installed
 """
 
 try:
@@ -8,16 +8,25 @@ try:
 except ImportError:
     metricz = None
 
+from .configuration import Configuration
 
-def report_metric(metric_name: str, value: int):
+METRICZ_AVAILABLE = bool(metricz)
+
+
+def report_metric(metric_name: str, value: int, fail_silently: bool=True):
     """
     Tries to report a metric, ignoring all errors
     """
     if metricz is None:
         return
 
-    writer = metricz.MetricWriter()
+    configuration = Configuration()
+
     try:
+        writer = metricz.MetricWriter(url=configuration.token_url,
+                                      directory=configuration.credentials_dir,
+                                      fail_silently=False)
         writer.write_metric(metric_name, value, {}, timeout=10)
-    except:
-        pass
+    except Exception:
+        if not fail_silently:
+            raise
