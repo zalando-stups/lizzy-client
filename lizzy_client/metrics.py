@@ -33,7 +33,7 @@ def report_metric(metric_name: str, value: int, fail_silently: bool=True):
 
     tags = {
         'version': VERSION,
-        'lizzy': configuration.lizzy_name
+        'lizzy': lizzy_name
     }
 
     # noinspection PyBroadException
