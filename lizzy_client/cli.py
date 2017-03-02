@@ -21,6 +21,7 @@ from .arguments import (DefinitionParamType, dry_run_option, output_option,
                         watch_option)
 from .configuration import Configuration
 from .lizzy import Lizzy
+from .metrics import report_metric
 from .token import get_token
 from .utils import get_stack_refs, read_parameter_file
 from .version import VERSION
@@ -64,6 +65,25 @@ COMPLETE_STATES = [
 requests.packages.urllib3.disable_warnings()  # Disable the security warnings
 
 main = AliasedGroup(context_settings=dict(help_option_names=['-h', '--help']))
+
+
+def main_with_metrics():
+    """
+    Runs main() and reports success and failure metrics
+    """
+    try:
+        main()
+    except Exception:
+        report_metric("bus.lizzy-client.failed", 1)
+        raise
+    except SystemExit as sys_exit:
+        if sys_exit.code == 0:
+            report_metric("bus.lizzy-client.success", 1)
+        else:
+            report_metric("bus.lizzy-client.failed", 1)
+        raise
+    else:
+        report_metric("bus.lizzy-client.success", 1)
 
 
 def connection_error(e: requests.ConnectionError, fatal=True):
