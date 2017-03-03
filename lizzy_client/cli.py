@@ -104,14 +104,10 @@ def agent_error(e: requests.HTTPError, fatal=True):
         data = e.response.json()
         details = data['detail']  # type: str
     except JSONDecodeError:
-        data = e.response.text
-        details = data
+        details = e.response.text or str(e.response)
 
-    if details:
-        lines = ('[AGENT] {}'.format(line) for line in details.splitlines())
-        msg = '\n' + '\n'.join(lines)
-    else:
-        msg = "[AGENT] {status} {title}".format_map(data)
+    lines = ('[AGENT] {}'.format(line) for line in details.splitlines())
+    msg = '\n' + '\n'.join(lines)
 
     if fatal:
         fatal_error(msg)
