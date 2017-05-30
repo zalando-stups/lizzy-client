@@ -332,7 +332,7 @@ def create(definition: dict, version: str, parameter: tuple,
                 if stacks_to_remove_counter > 0:
                     time.sleep(5)
 
-        if datetime.datetime.utcnow() <= end_time:
+        if datetime.datetime.utcnow() > end_time:
             click.echo('Timeout waiting for related stacks to be ready.')
 
 
