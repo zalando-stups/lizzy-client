@@ -424,14 +424,12 @@ def traffic(stack_name: str,
 @click.argument('new_scale', type=click.IntRange(0, 999, clamp=True))
 @region_option
 @remote_option
-@output_option
 @display_user_friendly_agent_errors
 def scale(stack_name: str,
-            stack_version: str,
-            new_scale: int,
-            region: Optional[str],
-            remote: Optional[str],
-            output: Optional[str]):
+          stack_version: str,
+          new_scale: int,
+          region: Optional[str],
+          remote: Optional[str]):
     '''Rescale a stack'''
     lizzy = setup_lizzy_client(remote)
 

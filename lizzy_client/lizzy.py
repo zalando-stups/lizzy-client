@@ -131,7 +131,7 @@ class Lizzy:
         return response.json()
 
     def scale(self, stack_id: str, new_scale: int,
-                region: Optional[str]=None):
+              region: Optional[str]=None):
         url = self.stacks_url / stack_id
         data = {"new_scale": new_scale}
         if region:
