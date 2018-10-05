@@ -432,7 +432,7 @@ def scale(stack_name: str,
             region: Optional[str],
             remote: Optional[str],
             output: Optional[str]):
-    '''Change stack scale'''
+    '''Rescale a stack'''
     lizzy = setup_lizzy_client(remote)
 
     with Action('Requesting rescale..'):

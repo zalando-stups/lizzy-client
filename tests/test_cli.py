@@ -436,8 +436,6 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
 
 def test_scale(mock_get_token, mock_fake_lizzy):
     # Normal call to rescale
-    FakeLizzy.reset()
-
     runner = CliRunner()
     result = runner.invoke(main, ['scale', 'lizzy-test', 'v10', '2'],
                            env=FAKE_ENV,
