@@ -138,13 +138,9 @@ class Lizzy:
             data['region'] = region
 
         header = make_header(self.access_token)
-        request = url.patch(json=data, headers=header, verify=False)
-        try:
-            request.raise_for_status()
-        except requests.RequestException:
-            warning('Data Json:')
-            print(json.dumps(data, indent=4))
-            raise
+        response = url.patch(json=data, headers=header, verify=False)
+        response.raise_for_status()
+        return self.get_output(response)
 
     def wait_for_deployment(self, stack_id: str, region: Optional[str]=None) -> [str]:
         retries = 3

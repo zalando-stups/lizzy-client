@@ -42,6 +42,7 @@ class FakeLizzy(Lizzy):
     final_state = 'CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
+    scale = MagicMock()
 
     def __init__(self):
         self.access_token = "TOKEN"
