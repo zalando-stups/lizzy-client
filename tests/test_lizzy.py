@@ -147,7 +147,6 @@ def test_get_traffic(monkeypatch):
 
 def test_scale(monkeypatch):
     mock_patch = MagicMock()
-    mock_patch.return_value = FakeResponse(200, '["stack1","stack2"]')
     monkeypatch.setattr('requests.patch', mock_patch)
 
     lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
