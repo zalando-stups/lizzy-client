@@ -43,6 +43,16 @@ Use the `traffic` subcommand to change the stacks traffic:
 
 For see more options use `lizzy traffic --help`.
 
+Change stack scale
+--------------------
+Use the `traffic` subcommand to change the stacks traffic:
+
+.. code-block::
+
+    $ lizzy scale my_app 1.0 0
+
+For see more options use `lizzy scale --help`.
+
 Deleting stacks
 ---------------
 Use the `delete` subcommand to delete stacks:
