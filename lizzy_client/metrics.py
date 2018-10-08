@@ -28,7 +28,7 @@ def report_metric(metric_name: str, value: int, fail_silently: bool=True):
     try:
         lizzy_domain = urlparse(configuration.lizzy_url).netloc
         lizzy_name, _ = lizzy_domain.split('.', 1)
-    except Exception as e:
+    except Exception:
         lizzy_name = 'UNKNOWN'
 
     tags = {
