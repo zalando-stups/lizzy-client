@@ -45,7 +45,7 @@ For see more options use `lizzy traffic --help`.
 
 Change stack scale
 --------------------
-Use the `traffic` subcommand to change the stacks traffic:
+Use the `scale` subcommand to re-scale a stack::
 
 .. code-block::
 
