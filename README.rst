@@ -45,11 +45,13 @@ For see more options use `lizzy traffic --help`.
 
 Change stack scale
 --------------------
-Use the `scale` subcommand to re-scale a stack::
+Use the `scale` subcommand to re-scale a stack:
 
 .. code-block::
 
     $ lizzy scale my_app 1.0 0
+
+Note: Unlike senza, it doesn't require the `--force` argument to update multiple stacks.
 
 For see more options use `lizzy scale --help`.
 

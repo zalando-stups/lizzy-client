@@ -426,7 +426,7 @@ def traffic(stack_name: str,
 @remote_option
 @display_user_friendly_agent_errors
 def scale(stack_name: str,
-          stack_version: str,
+          stack_version: Optional[str],
           new_scale: int,
           region: Optional[str],
           remote: Optional[str]):
