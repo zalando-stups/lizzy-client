@@ -140,7 +140,7 @@ class Lizzy:
         header = make_header(self.access_token)
         response = url.patch(json=data, headers=header, verify=False)
         try:
-            request.raise_for_status()
+            response.raise_for_status()
         except requests.RequestException:
             warning('Data Json:')
             print(json.dumps(data, indent=4))
