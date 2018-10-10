@@ -42,6 +42,7 @@ class FakeLizzy(Lizzy):
     final_state = 'CREATE_COMPLETE'
     raise_exception = False
     traffic = MagicMock()
+    scale = MagicMock()
 
     def __init__(self):
         self.access_token = "TOKEN"
@@ -433,6 +434,17 @@ def test_traffic(mock_get_token, mock_fake_lizzy):
                                catch_exceptions=False)
         assert result.exit_code == 0
 
+
+def test_scale(mock_get_token, mock_fake_lizzy):
+    # Normal call to rescale
+    runner = CliRunner()
+    result = runner.invoke(main, ['scale', 'lizzy-test', 'v10', '2'],
+                           env=FAKE_ENV,
+                           catch_exceptions=False)
+    assert 'Requesting rescale.. OK' in result.output
+    assert result.exit_code == 0
+    mock_fake_lizzy.scale.assert_called_once_with('lizzy-test-v10', 2,
+                                                    region=None)
 
 def test_version():
     runner = CliRunner()

@@ -130,6 +130,18 @@ class Lizzy:
         response.raise_for_status()
         return response.json()
 
+    def scale(self, stack_id: str, new_scale: int,
+              region: Optional[str]=None):
+        url = self.stacks_url / stack_id
+        data = {"new_scale": new_scale}
+        if region:
+            data['region'] = region
+
+        header = make_header(self.access_token)
+        response = url.patch(json=data, headers=header, verify=False)
+        response.raise_for_status()
+        return self.get_output(response)
+
     def wait_for_deployment(self, stack_id: str, region: Optional[str]=None) -> [str]:
         retries = 3
         while retries:

@@ -145,6 +145,34 @@ def test_get_traffic(monkeypatch):
                                          verify=False)
 
 
+def test_scale(monkeypatch):
+    mock_patch = MagicMock()
+    monkeypatch.setattr('requests.patch', mock_patch)
+
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    lizzy.scale('574CC', 3)
+
+    header = make_header('7E5770K3N')
+    mock_patch.assert_called_once_with('https://lizzy.example/api/stacks/574CC',
+                                       headers=header,
+                                       data=None,
+                                       json={"new_scale": 3},
+                                       verify=False)
+
+    # call with region payload
+    mock_patch.reset_mock()
+    lizzy = Lizzy('https://lizzy.example', '7E5770K3N')
+    lizzy.scale('574CC', 3, region='ab-foo-7')
+
+    header = make_header('7E5770K3N')
+    mock_patch.assert_called_once_with('https://lizzy.example/api/stacks/574CC',
+                                       headers=header,
+                                       data=None,
+                                       json={'new_scale': 3,
+                                             'region': 'ab-foo-7'},
+                                       verify=False)
+
+
 @pytest.mark.parametrize(
     "version, parameters, region, disable_rollback, dry_run, force, tags, keep_stacks, new_traffic",
     [

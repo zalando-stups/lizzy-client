@@ -418,6 +418,26 @@ def traffic(stack_name: str,
             lizzy.traffic(stack_id, percentage, region=region)
 
 
+@main.command('scale')
+@click.argument('stack_name')
+@click.argument('stack_version')
+@click.argument('new_scale', type=click.IntRange(0, 999, clamp=True))
+@region_option
+@remote_option
+@display_user_friendly_agent_errors
+def scale(stack_name: str,
+          stack_version: Optional[str],
+          new_scale: int,
+          region: Optional[str],
+          remote: Optional[str]):
+    '''Rescale a stack'''
+    lizzy = setup_lizzy_client(remote)
+
+    with Action('Requesting rescale..'):
+        stack_id = '{stack_name}-{stack_version}'.format_map(locals())
+        lizzy.scale(stack_id, new_scale, region=region)
+
+
 @main.command()
 @click.argument('stack_ref', nargs=-1)
 @region_option
